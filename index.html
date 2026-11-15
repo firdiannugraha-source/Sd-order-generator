@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SD Order Generator by Laras</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>▦</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+/* ---- Cek permintaan daftar baru (admin) ---- */
+const pollAdmin=()=>{if(me&&me.role==='admin'&&!document.hidden&&$('v_users').hidden)refreshUsers(true)};
+setInterval(pollAdmin,90000);document.addEventListener('visibilitychange',pollAdmin);
+</script>
+<style>
+:root{--bg:#e2e7fa;--fg:#14142b;--mut:#7c829e;--card:#ffffff;--bd:#e7eaf6;--soft:#f3f5fd;--acc:#4b50f5;--acc2:#7a7fff;--pink:#f33dcb;--pink-soft:#fde8f9;--on-acc:#fff;--shadow:0 8px 22px rgba(75,80,245,.08);--btn-sh:rgba(75,80,245,.30);--ok:#2bb673;--warn:#c9800a;--err:#e5484d;color-scheme:light}
+
+
+html{scroll-padding-top:env(safe-area-inset-top,0px);min-height:100%}
+body{margin:0;min-height:100vh;color:var(--fg);font:15px/1.6 "Plus Jakarta Sans","Segoe UI",-apple-system,Arial,sans-serif;
+  background-color:var(--bg);background-image:radial-gradient(circle at 8% 0%,color-mix(in srgb,#d9b48c 40%,transparent) 0,transparent 40%),radial-gradient(circle at 100% 22%,color-mix(in srgb,#c9a07a 28%,transparent) 0,transparent 36%);background-attachment:fixed}
+main{max-width:760px;margin:0 auto;padding:36px 16px 56px}
+.hero{position:relative;overflow:hidden;margin:0 0 22px;padding:30px 26px 24px;border-radius:30px;color:#fbefe0;
+  background:radial-gradient(circle at 92% 8%,rgba(240,181,101,.55) 0,transparent 42%),radial-gradient(circle at 6% 110%,rgba(168,106,60,.7) 0,transparent 50%),linear-gradient(140deg,#35200f,#5e3922 58%,#8c5530);
+  box-shadow:0 18px 38px rgba(70,38,16,.32);border:1.5px solid rgba(240,181,101,.25)}
+.hero::before,.hero::after{content:"";position:absolute;border-radius:50%;border:2px solid rgba(240,181,101,.22);pointer-events:none}
+.hero::before{width:190px;height:190px;right:-50px;top:-60px}
+.hero::after{width:110px;height:110px;right:50px;top:30px;border-color:rgba(240,181,101,.14)}
+.hero>*{position:relative}
+h1{font:600 40px/1.1 "Plus Jakarta Sans",sans-serif;margin:0 0 10px;color:#fff4e4;letter-spacing:-.5px}
+p.s{color:#ecd3b6;margin:0;max-width:500px}
+.date{display:inline-block;margin:0 0 14px;padding:6px 14px;border-radius:999px;font-weight:700;font-size:13px;color:#f8c981;background:rgba(25,13,5,.35);border:1px solid rgba(240,181,101,.28)}
+.wm{margin-top:40px;padding-top:14px;border-top:1px solid var(--bd);display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px;font-size:12px;color:var(--mut);opacity:.75;text-align:center}
+.prog{margin-top:22px;padding:14px 16px;border-radius:18px;background:rgba(25,13,5,.35);border:1px solid rgba(240,181,101,.22)}
+.prog .row{display:flex;justify-content:space-between;gap:10px;font-weight:700;font-size:14px;margin-bottom:10px}
+.prog .row span:last-child{color:#f5bd6c;white-space:nowrap}
+.track{height:12px;border-radius:999px;background:rgba(255,244,228,.16);overflow:hidden}
+#bar{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#f5bd6c,#e48a3a);box-shadow:0 0 14px rgba(245,189,108,.7);transition:width .5s cubic-bezier(.3,1.3,.5,1)}
+.card{background:var(--card);border:1.5px solid var(--bd);border-radius:22px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow)}
+.step{display:grid;grid-template-columns:36px 1fr;column-gap:14px;align-items:start}
+.step .no{grid-row:1/span 3;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font:italic 600 18px "Plus Jakarta Sans",sans-serif;color:var(--acc);background:var(--soft);border:1.5px solid var(--bd)}
+label{display:block;font-weight:700;margin:6px 0 8px}
+input[type=file],input[type=text],input[type=password],input[type=tel]{width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px dashed var(--bd);border-radius:14px;background:var(--soft);color:var(--fg);font:inherit;transition:border-color .15s,box-shadow .15s}
+input[type=text],input[type=password],input[type=tel]{border-style:solid;background:var(--card)}
+input[type=file]::file-selector-button{margin:0 12px 0 0;padding:8px 16px;border:0;border-radius:999px;background:var(--acc);color:var(--on-acc);font:700 14px "Plus Jakarta Sans",sans-serif;cursor:pointer}
+input:focus-visible,button:focus-visible{outline:3px solid color-mix(in srgb,var(--acc) 45%,transparent);outline-offset:2px;border-color:var(--acc)}
+.f{font-size:13px;color:var(--mut);margin-top:8px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 6px}
+button{background:linear-gradient(135deg,var(--acc2),var(--acc));color:var(--on-acc);border:0;border-radius:999px;padding:12px 24px;font:700 15px "Plus Jakarta Sans",sans-serif;cursor:pointer;box-shadow:0 6px 14px var(--btn-sh);transition:transform .15s,box-shadow .15s}
+button:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 9px 18px var(--btn-sh)}
+button:active:not(:disabled){transform:translateY(0)}
+button:disabled{opacity:.45;cursor:default;box-shadow:none}
+button.g{background:transparent;color:var(--acc);border:1.5px solid var(--acc);box-shadow:none}
+button.g:hover:not(:disabled){background:var(--soft);box-shadow:none}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.err{color:var(--err)}
+#msg{margin-bottom:14px}
+.sc{overflow-x:auto}table{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
+th,td{border-bottom:1px solid var(--bd);padding:8px 10px;text-align:left;white-space:nowrap}
+th{color:var(--acc);background:var(--soft);font-weight:700}
+th:first-child{border-top-left-radius:12px}th:last-child{border-top-right-radius:12px}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right}
+.step{border-left:7px solid var(--acc2);transition:border-color .25s,background .25s}
+.step .no{background:linear-gradient(135deg,var(--acc2),var(--acc));color:var(--on-acc);border:0;font-style:normal;font-family:"Plus Jakarta Sans",sans-serif;font-weight:600;box-shadow:0 3px 8px var(--btn-sh);transition:background .25s}
+.step.done{border-left-color:var(--ok)}
+.step.done .no{background:var(--ok);color:#fff}
+.actions button#go{padding:15px 32px;font-size:17px;background:linear-gradient(135deg,#d9893c,#8c4f26);color:#fff}
+.actions button#go:not(:disabled){animation:ring 2.2s ease-out infinite}
+@keyframes ring{0%{box-shadow:0 6px 14px var(--btn-sh),0 0 0 0 rgba(217,137,60,.55)}70%,100%{box-shadow:0 6px 14px var(--btn-sh),0 0 0 16px rgba(217,137,60,0)}}
+#out .card:first-child{background:linear-gradient(135deg,var(--soft),var(--card));border:1.5px solid var(--acc2);font-size:16px;line-height:1.8}
+#out .card:first-child b{color:var(--acc);font-family:"Plus Jakarta Sans",sans-serif;font-size:19px}
+[hidden]{display:none!important}
+body:not(.in) .prog{display:none}
+.segs{display:flex;gap:6px;padding:5px;border-radius:999px;background:var(--soft);border:1.5px solid var(--bd)}
+.segs button{margin:0;padding:9px 20px;font-size:14px;background:transparent;color:var(--mut);box-shadow:none}
+.segs button.on{background:linear-gradient(135deg,var(--acc2),var(--acc));color:var(--on-acc);box-shadow:0 4px 10px var(--btn-sh)}
+.segs button:hover:not(:disabled){transform:none;box-shadow:none}
+.segs button.on:hover:not(:disabled){box-shadow:0 4px 10px var(--btn-sh)}
+.card h2{font:600 22px/1.2 "Plus Jakarta Sans",sans-serif;margin:0 0 12px;color:var(--acc)}
+.auth{padding:20px}
+.auth .segs{margin-bottom:18px}.auth .segs button{flex:1}
+.field{margin-bottom:14px}
+.field label{margin:0 0 6px}
+.field .f{margin-top:5px}
+.auth form button[type=submit]{width:100%;margin-top:6px;padding:14px}
+#amsg{margin-top:12px;min-height:18px}
+a.btn{display:inline-block;padding:13px 24px;border-radius:999px;font-weight:700;color:#fff;text-decoration:none;background:linear-gradient(135deg,#3f9d63,#2a7a4a);box-shadow:0 6px 14px rgba(42,122,74,.3)}
+#done p{margin:0 0 16px}
+#done .row2{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+#done .row2 button{margin:0}
+.urow{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--bd)}
+.urow:last-child{border-bottom:0}
+.uinfo{min-width:0}.uinfo b{font-size:16px}
+.uinfo .f{margin-top:2px}.uinfo a{color:var(--acc);font-weight:700}
+.uact{display:flex;gap:8px;flex-wrap:wrap}
+.uact button{margin:0;padding:7px 15px;font-size:13px}
+button.dg{background:transparent;color:var(--err);border:1.5px solid var(--err);box-shadow:none}
+button.dg:hover:not(:disabled){background:var(--soft);box-shadow:none}
+.badge{display:inline-block;margin-left:8px;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;background:var(--soft);border:1px solid var(--bd);vertical-align:middle}
+.badge.s-ok{color:var(--ok)}.badge.s-wt{color:var(--warn)}.badge.s-bad{color:var(--err)}.badge.s-ad{color:var(--acc)}
+.cnt{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--acc);color:var(--on-acc);font:700 12px "Plus Jakarta Sans",sans-serif;margin-left:6px;vertical-align:middle}
+.segs .cnt{background:var(--warn);color:#fff}
+.htop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 16px}
+.htop .date{margin:0}
+.tools{display:flex;align-items:center;gap:10px}
+.tools .who{font-size:14px;font-weight:700;color:#fbefe0;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gear{position:relative;margin:0;padding:0;width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:rgba(25,13,5,.35);border:1px solid rgba(240,181,101,.32);color:#f8c981;box-shadow:none}
+.gear svg{width:22px;height:22px;transition:transform .5s}
+.gear:hover:not(:disabled){background:rgba(25,13,5,.55);transform:none;box-shadow:none}
+.gear:hover svg{transform:rotate(60deg)}
+.gear.on{background:#f5bd6c;color:#3d2314}
+.gear.on:hover:not(:disabled){background:#f5bd6c}
+.gbadge{position:absolute;top:-6px;right:-6px;box-sizing:border-box;min-width:21px;height:21px;padding:0 5px;border-radius:999px;background:#e5484d;color:#fff;border:2px solid #4a2c18;font:700 11px/17px "Plus Jakarta Sans",sans-serif;text-align:center}
+.gear.alert{animation:gping 2s ease-out infinite}
+@keyframes gping{0%{box-shadow:0 0 0 0 rgba(229,72,77,.65)}70%,100%{box-shadow:0 0 0 12px rgba(229,72,77,0)}}
+.tb{margin:0;padding:10px 18px;font-size:13px;background:transparent;color:#fbefe0;border:1px solid rgba(240,181,101,.4);box-shadow:none}
+.tb:hover:not(:disabled){background:rgba(255,244,228,.1);transform:none;box-shadow:none}
+.auth{max-width:480px;margin:6px auto 14px}
+.appgrid{display:block}
+.side .actions{margin:0 0 4px}
+.side .actions #go{flex:1 1 100%}
+.side .actions .g{flex:1 1 130px}
+.side .card>.f{margin:-4px 0 4px}
+.sethead{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin:0 0 16px}
+.sethead h2{font:600 30px/1.1 "Plus Jakarta Sans",sans-serif;color:var(--acc);margin:0}
+.sethead .f{margin:4px 0 0}
+.hbtn{display:flex;gap:8px;flex-wrap:wrap}
+.hbtn button{margin:0;padding:9px 18px;font-size:14px}
+.setgrid{display:block}
+@media (min-width:900px){
+  body{font-size:16px}
+  main{max-width:1120px;padding:40px 32px 64px}
+  .hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.85fr);column-gap:44px;padding:34px 40px 32px}
+  .htop{grid-column:1/-1;margin-bottom:22px}
+  h1{font-size:50px;grid-column:1}
+  p.s{grid-column:1;font-size:16.5px;max-width:520px}
+  .prog{grid-column:2;grid-row:2/4;align-self:center;margin-top:0;padding:18px 20px}
+  .appgrid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(300px,.8fr);gap:22px;align-items:start}
+  .side{position:sticky;top:20px}
+  .setgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;align-items:start}
+  .setgrid .wide{grid-column:1/-1}
+  .card{padding:20px 24px}
+  th,td{padding:9px 14px}
+}
+@media (max-width:520px){.tools .who{display:none}.tools{gap:8px}.htop .date{white-space:nowrap;font-size:12px;padding:6px 11px}.tb{padding:9px 14px}}
+.pw{position:relative}
+.pw input{padding-right:50px}
+.eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);margin:0;padding:0;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:transparent;color:var(--mut);box-shadow:none}
+.eye svg{width:21px;height:21px}
+.eye .on{display:none}
+.eye[aria-pressed="true"] .on{display:block}
+.eye[aria-pressed="true"] .off{display:none}
+.eye[aria-pressed="true"]{color:var(--acc)}
+.eye:hover:not(:disabled),.eye:active:not(:disabled){transform:translateY(-50%);background:var(--soft);box-shadow:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:480px){h1{font-size:31px}.hero{padding:24px 18px 18px}.actions button{flex:1 1 100%}}
+.tabs{display:flex;gap:8px;margin:0 0 20px;padding:6px;border-radius:22px;background:var(--card);border:1.5px solid var(--bd);box-shadow:var(--shadow)}
+.tab{flex:1;margin:0;padding:12px 16px;border-radius:16px;background:transparent;color:var(--mut);box-shadow:none;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.25}
+.tab b{font-size:16px}.tab span{font-size:12px;font-weight:500;opacity:.85}
+.tab.on{background:linear-gradient(135deg,var(--acc2),var(--acc));color:var(--on-acc);box-shadow:0 5px 12px var(--btn-sh)}
+.tab:hover:not(:disabled){transform:none;box-shadow:none}.tab.on:hover:not(:disabled){box-shadow:0 5px 12px var(--btn-sh)}
+.chk{display:flex;gap:10px;align-items:flex-start;font-weight:700;margin:14px 0 0;cursor:pointer}
+.chk input{margin:4px 0 0;width:18px;height:18px;accent-color:var(--acc);flex:none}
+.chk .f{font-weight:400;margin-top:2px}
+.scl{max-height:460px;overflow:auto}.scl th{position:sticky;top:0;z-index:1}
+td.bad{color:var(--warn);font-weight:700}
+@media (min-width:900px){
+  main{max-width:1240px;padding:32px 40px 56px}
+  .hero{padding:26px 40px 24px;margin-bottom:20px}
+  h1{font-size:44px}
+  .appgrid{grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);gap:24px}
+  .tab{flex-direction:row;justify-content:center;gap:12px;padding:14px 20px}.tab b{font-size:17px}
+  #out,#out2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;align-items:start}
+  #out>.card:first-child,#out2>.card{grid-column:1/-1}
+  .step{padding:20px 24px}
+}
+@media (min-width:1500px){main{max-width:1360px}}
+@media (max-width:520px){.tab span{display:none}.tab{padding:12px 8px}}
+
+/* ===== Tema kanban dashboard ===== */
+@keyframes ring{0%{box-shadow:0 10px 22px rgba(243,61,203,.35),0 0 0 0 rgba(243,61,203,.45)}70%,100%{box-shadow:0 10px 22px rgba(243,61,203,.35),0 0 0 14px rgba(243,61,203,0)}}
+@keyframes land{from{opacity:.25;transform:translateY(-14px) scale(.97)}to{opacity:1;transform:none}}
+body{background:var(--bg);color:var(--fg);font:14.5px/1.55 "Plus Jakarta Sans","Segoe UI",sans-serif}
+button,input{font-family:inherit}
+.frame{max-width:1560px;margin:0 auto;padding:18px;box-sizing:border-box}
+.shell{display:grid;grid-template-columns:262px minmax(0,1fr);gap:20px;align-items:start;background:#eef1fd;border-radius:32px;padding:18px;box-shadow:0 30px 70px rgba(75,80,245,.16);min-height:calc(100vh - 36px);box-sizing:border-box}
+body:not(.in) .shell{grid-template-columns:minmax(0,1fr)}
+body:not(.in) .nav{display:none}
+main.stage{max-width:none;margin:0;padding:4px 6px 0;min-width:0}
+.nav{position:sticky;top:18px;height:calc(100vh - 72px);box-sizing:border-box;background:#fff;border:1px solid #fff;border-radius:26px;padding:20px 16px 16px;display:flex;flex-direction:column;gap:18px;box-shadow:0 10px 28px rgba(75,80,245,.10);overflow:auto}
+.brand{display:flex;align-items:center;gap:11px;padding:2px 6px}
+.brand svg{width:40px;height:40px;flex:none}
+.brand b{display:block;font-size:19px;font-weight:800;letter-spacing:-.4px;line-height:1.1}
+.brand small{color:var(--mut);font-size:11.5px;font-weight:600}
+.menu{display:flex;flex-direction:column;gap:6px}
+.nv{margin:0;display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:14px;background:transparent;color:#4a4f6b;font:600 14.5px/1.3 "Plus Jakarta Sans",sans-serif;text-align:left;box-shadow:none}
+.nv svg{width:20px;height:20px;flex:none}
+.nv:hover:not(:disabled){background:var(--soft);transform:none;box-shadow:none}
+.nv.on,.nv.on:hover:not(:disabled){background:linear-gradient(135deg,#5a5ff8,#4046ea);color:#fff;box-shadow:0 10px 22px rgba(75,80,245,.38)}
+.recent{display:flex;flex-direction:column;gap:11px;padding-top:16px;border-top:1px solid var(--bd)}
+.recent h3{margin:0 0 2px 4px;font-size:12px;font-weight:700;color:var(--mut)}
+.ri{display:flex;align-items:center;gap:11px;min-width:0}
+.rd{width:38px;height:38px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px;background:var(--soft);color:var(--mut);border:2px solid #fff;box-shadow:0 0 0 1.5px var(--bd)}
+.ri.on .rd{background:linear-gradient(135deg,#ffd0f2,#d9d8ff);color:#b4189a;box-shadow:0 0 0 1.5px #f0b4e4}
+.ri b{display:block;font-size:13.5px;line-height:1.25}
+.ri small{display:block;color:var(--mut);font-size:11.5px;max-width:158px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.navfoot{margin-top:auto}
+.navfoot .wm{margin:0;padding:12px 6px 0;border-top:1px solid var(--bd);justify-content:flex-start;font-size:11.5px;color:var(--mut);opacity:1;text-align:left}
+.topbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 16px}
+.crumbs{display:flex;align-items:center;gap:8px}.crumbs .sl{color:#b3b8d1}
+.pill{padding:6px 13px;border-radius:10px;background:#fff;border:1px solid var(--bd);font-weight:600;font-size:12.5px}
+.pill.cur{background:#e7e9fe;border-color:#d6d9fb;color:var(--acc)}
+.prog{margin:0 0 0 auto;padding:0;background:none;border:0;flex:0 1 300px;min-width:210px}
+.prog .row{margin:0 0 6px;font-size:11.5px;font-weight:700;color:var(--mut);display:block}
+.prog .row span:last-child{color:var(--mut)}
+.track{height:9px;border-radius:999px;background:#dde1f6;overflow:hidden}
+#bar{height:100%;border-radius:999px;background:linear-gradient(90deg,#f33dcb,#ff74dc);box-shadow:none;transition:width .5s cubic-bezier(.3,1.2,.5,1)}
+.tools{display:flex;align-items:center;gap:10px}
+.gear{width:40px;height:40px;background:#fff;border:1px solid var(--bd);color:#4a4f6b;box-shadow:none;border-radius:50%}
+.gear:hover:not(:disabled){background:var(--soft)}
+.gear.on,.gear.on:hover:not(:disabled){background:var(--acc);color:#fff;border-color:var(--acc)}
+.gbadge{border-color:#fff}
+.ava{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:linear-gradient(135deg,#ffb3ea,#b8b5ff);color:#3a2a6b;border:2px solid #fff;box-shadow:0 0 0 1.5px var(--bd)}
+.tools .who{color:var(--fg);font-size:13px;font-weight:700;max-width:150px}
+.tb{background:#fff;color:var(--fg);border:1px solid var(--bd);border-radius:12px;padding:9px 15px;box-shadow:none}
+.tb:hover:not(:disabled){background:var(--soft)}
+.pagehead{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#fff;border:1px solid var(--bd);border-radius:22px;padding:16px 20px;margin:0 0 18px;box-shadow:0 6px 18px rgba(75,80,245,.06)}
+.phi{width:58px;height:58px;border-radius:16px;background:#f1f3fd;border:1px solid var(--bd);display:grid;place-items:center;color:var(--acc);flex:none}
+.pht{flex:1 1 320px;min-width:0}
+.pagehead h1{font:800 27px/1.15 "Plus Jakarta Sans",sans-serif;letter-spacing:-.6px;color:var(--fg);margin:0 0 3px;background:none;-webkit-text-fill-color:currentColor;grid-column:auto}
+.pagehead p.s{color:var(--mut);margin:0;max-width:680px;font-size:13.5px;grid-column:auto}
+.phr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hintpill{display:inline-block;padding:8px 14px;border-radius:12px;background:var(--pink-soft);color:#b4189a;font-weight:700;font-size:13px}
+.date{margin:0;padding:8px 14px;border-radius:12px;background:#f1f3fd;border:1px solid var(--bd);color:var(--mut);font-weight:700;font-size:13px}
+.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;align-items:start}
+.col{background:#f6f7fe;border:1px solid #e9ecf8;border-radius:24px;padding:16px 14px 14px;box-shadow:0 8px 24px rgba(75,80,245,.06)}
+.chead{display:flex;align-items:center;gap:10px;margin:0 4px 14px}
+.chead h2{margin:0;font:800 18px/1.2 "Plus Jakarta Sans",sans-serif;color:var(--fg)}
+.kn{min-width:26px;padding:1px 8px;text-align:center;border-radius:999px;background:#eceffb;color:var(--mut);font-weight:700;font-size:13.5px}
+.cbody{display:flex;flex-direction:column;gap:12px;min-height:60px}
+.cbody.ec::before{content:attr(data-empty);display:block;padding:22px 12px;border:1.5px dashed #cfd5f1;border-radius:16px;color:#9aa0bd;text-align:center;font-size:13px}
+.kc{position:relative;background:#fff;border:1.5px solid #eceef8;border-radius:18px;padding:12px 16px 16px;box-shadow:0 4px 12px rgba(75,80,245,.06);transition:border-color .2s,box-shadow .2s}
+.kc:focus-within{border-color:var(--pink);box-shadow:0 8px 22px rgba(243,61,203,.16)}
+.kc.land{animation:land .45s cubic-bezier(.2,1.2,.4,1)}
+.ktab{display:flex;align-items:center;justify-content:space-between;margin:-12px -16px 12px;padding:8px 14px;border-radius:16px 16px 0 0;font-size:11.5px;font-weight:700;background:#f0f1fe;color:var(--acc)}
+.chip{display:inline-flex;align-items:center;gap:6px}
+.kc.req .ktab{background:#fff0f0;color:#d23a3f}
+.kc.mid .ktab{background:#fff6e5;color:#a86a05}
+.kc .no{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#fff;color:currentColor;border:1.5px solid currentColor;font:800 12px/1 "Plus Jakarta Sans",sans-serif;box-shadow:none}
+.kc.done .ktab{background:#e9f8f0;color:#1d9a61}
+.kc.done .no{background:var(--ok);color:#fff;border-color:var(--ok)}
+.kc label{display:block;margin:0 0 10px;font-size:15px;font-weight:800;line-height:1.3}
+.kc input[type=file]{border-radius:12px;border:1.5px dashed #c9cff0;background:#f7f8ff;font-size:12.5px;padding:8px}
+.kc input[type=text]{border-radius:12px;border:1.5px solid var(--bd);background:#fff}
+input[type=file]::file-selector-button{border-radius:10px;background:var(--acc)}
+.kc .f{margin-top:8px;font-size:12.5px;word-break:break-word}
+.proc .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 6px}
+.proc .actions button{width:100%;margin:0;flex:none}
+.proc .actions #go,.proc .actions #dlo{grid-column:1/-1;background:linear-gradient(135deg,#f94fd3,#e02bb8);color:#fff;border-radius:14px;padding:14px 18px;font-size:15px;box-shadow:0 10px 22px rgba(243,61,203,.35)}
+button{border-radius:12px;background:linear-gradient(135deg,#6a6ff9,#4b50f5);box-shadow:0 8px 18px var(--btn-sh)}
+button.g{background:#fff;color:var(--acc);border:1.5px solid var(--acc);box-shadow:none}
+button.g:hover:not(:disabled){background:var(--soft)}
+button.dg{background:#fff}
+.card{background:#fff;border:1px solid var(--bd);border-radius:20px;box-shadow:0 6px 18px rgba(75,80,245,.06)}
+.card h2,.sethead h2{color:var(--fg);font-weight:800}
+#out,#out2{margin-top:18px}
+#out .card:first-child,#out2 .card:first-child{background:linear-gradient(135deg,#f6f7ff,#fff);border:1.5px solid #d6d9fb}
+#out .card:first-child b,#out2 .card:first-child b{color:var(--acc);font-family:"Plus Jakarta Sans",sans-serif;font-weight:800}
+th{background:#f3f5fd;color:var(--acc)}
+tr:hover td{background:#fafbff}
+.segs{background:var(--soft);border-radius:14px}.segs button{border-radius:10px}
+.segs button.on{background:var(--acc);color:#fff}
+.auth{max-width:480px;margin:28px auto 14px}
+.sethead>div:first-child{display:none}.sethead{justify-content:flex-end}
+@media (min-width:900px){
+  .step{padding:0}
+  #out,#out2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;align-items:start}
+  #out>.card:first-child,#out2>.card{grid-column:1/-1}
+}
+@media (max-width:899px){
+  .frame{padding:10px}
+  .shell{grid-template-columns:1fr;padding:12px;border-radius:24px;gap:14px}
+  .nav{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:12px;border-radius:20px;gap:12px}
+  .recent,.navfoot{display:none}
+  .menu{flex-direction:row;flex-wrap:wrap;flex:1 1 260px}.nv{width:auto;flex:1 1 auto}
+  .prog{margin-left:0;flex:1 1 100%;order:3}
+  .pagehead{padding:14px}.phi{display:none}
+  .pagehead h1{font-size:23px}
+}
+@media (max-width:520px){.tools .who{display:none}.crumbs{display:none}}
+</style>
+</head>
+<body>
+<div class="frame"><div class="shell">
+<aside class="nav" id="nav">
+<div class="brand"><svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#4b50f5"/><rect x="9" y="10" width="5.5" height="20" rx="2.7" fill="#fff"/><rect x="17.2" y="10" width="5.5" height="13" rx="2.7" fill="#fff" opacity=".9"/><rect x="25.5" y="10" width="5.5" height="16.5" rx="2.7" fill="#f33dcb"/></svg><div><b>SD Order</b><small>Generator by Laras</small></div></div>
+<nav class="menu" aria-label="Menu utama">
+<button type="button" class="nv on" id="tab_sd" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="18" rx="2"/><rect x="14" y="3" width="7" height="11" rx="2"/></svg><span>Buat SD Order</span></button>
+<button type="button" class="nv" id="tab_red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg><span>Kurangi Outstanding</span></button>
+</nav>
+<div class="recent"><h3>File aktif</h3>
+<div class="ri" id="r_o"><span class="rd">O</span><div><b>Outstanding</b><small>Belum diunggah</small></div></div>
+<div class="ri" id="r_s"><span class="rd">S</span><div><b>Shipping Plan</b><small>Belum diunggah</small></div></div>
+<div class="ri" id="r_i"><span class="rd">I</span><div><b>Invoice</b><small>Belum diunggah</small></div></div>
+</div>
+<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span>Versi 1.0</span></footer></div>
+</aside>
+<main class="stage">
+<div class="topbar">
+<div class="crumbs"><span class="pill">Menu</span><span class="sl">/</span><span class="pill cur" id="crumb">Masuk</span></div>
+<div class="prog" role="status" aria-live="polite"><div class="row"><span id="pt">Progres: 0%</span></div><div class="track"><div id="bar"></div></div></div>
+<div class="tools" id="tools" hidden>
+<button id="gear" class="gear" type="button" aria-label="Pengaturan" title="Pengaturan" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="gbadge" id="gbadge" hidden>0</span></button>
+<span class="ava" id="ava">?</span><span class="who" id="who"></span>
+<button id="bye" class="tb" type="button">Keluar</button>
+</div>
+</div>
+<header class="pagehead">
+<span class="phi"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="18" rx="2"/><rect x="14" y="3" width="7" height="11" rx="2"/></svg></span>
+<div class="pht"><h1 id="ph_t">SD Order Generator by Laras</h1><p class="s" id="ph_s">Masuk untuk mulai. File diproses di komputer Anda, tidak dikirim ke mana pun.</p></div>
+<div class="phr"><span class="hintpill" id="hintw"><span id="hint">Yuk mulai! Unggah file Outstanding dulu.</span></span><div class="date" id="tgl"></div></div>
+</header>
+
+<section id="v_auth" class="card auth" hidden>
+<div class="segs"><button id="a_in" class="on" type="button">Masuk</button><button id="a_up" type="button">Daftar</button></div>
+<form id="f_in" autocomplete="on">
+<div class="field"><label for="li_u">Username</label><input type="text" id="li_u" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+<div class="field"><label for="li_p">Password</label><div class="pw"><input type="password" id="li_p" autocomplete="current-password" required><button type="button" class="eye" data-for="li_p" aria-label="Tampilkan password" aria-pressed="false"><svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg><svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+<button id="b_in" type="submit">Masuk</button>
+</form>
+<form id="f_up" autocomplete="on" hidden>
+<div class="field"><label for="su_u">Username</label><input type="text" id="su_u" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required><div class="f">Huruf kecil, angka, titik, atau underscore (3-20 karakter).</div></div>
+<div class="field"><label for="su_w">Nomor WhatsApp</label><input type="tel" id="su_w" inputmode="tel" autocomplete="tel" placeholder="08xxxxxxxxxx" required></div>
+<div class="field"><label for="su_p">Password</label><div class="pw"><input type="password" id="su_p" autocomplete="new-password" minlength="6" required><button type="button" class="eye" data-for="su_p" aria-label="Tampilkan password" aria-pressed="false"><svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg><svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><div class="f">Minimal 6 karakter.</div></div>
+<button id="b_up" type="submit">Kirim permintaan daftar</button>
+</form>
+<div id="done" hidden></div>
+<div id="amsg" class="f" role="status"></div>
+</section>
+
+<section id="v_app" hidden>
+<div id="p_sd" role="tabpanel">
+<div class="board">
+<section class="col"><div class="chead"><h2>Menunggu</h2><span class="kn" id="n_sd_w">3</span></div><div class="cbody" id="w_sd" data-empty="Semua langkah sudah terisi"><div class="kc req" id="st1" data-o="1"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">1</span></div><label for="fo">File Outstanding (.xls / .xlsx)</label><input type="file" id="fo" accept=".xls,.xlsx"><div class="f" id="fo_i"></div></div><div class="kc req" id="st2" data-o="2"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">2</span></div><label for="fs">File Shipping Plan (.xls / .xlsx)</label><input type="file" id="fs" accept=".xls,.xlsx"><div class="f" id="fs_i"></div></div><div class="kc mid" id="st3" data-o="3"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Cek ulang</span><span class="no">3</span></div><label for="od">Nomor ODID (kolom ODID)</label><input type="text" id="od" value="SD2611130004" autocomplete="off"><div class="f">Ganti sesuai nomor SD Order hari ini.</div></div></div></section>
+<section class="col"><div class="chead"><h2>Selesai</h2><span class="kn" id="n_sd_d">0</span></div><div class="cbody" id="d_sd" data-empty="Belum ada langkah yang selesai"></div></section>
+<section class="col"><div class="chead"><h2>Hasil</h2></div><div class="cbody"><div class="kc proc"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Proses</span></div>
+<div class="f">Lengkapi tiga langkah, lalu buat dan unduh hasilnya.</div>
+<label class="chk" for="useinv"><input type="checkbox" id="useinv" checked><span>Kurangi sisa Outstanding dengan invoice<span class="f" id="inv_stat">Belum ada invoice. Unggah di menu Kurangi Outstanding.</span></span></label>
+<div class="actions">
+<button id="go" disabled>Buat SD Order</button>
+<button id="dl" class="g" disabled>Unduh .xlsx</button><button id="dl2" class="g" disabled>Unduh .xls</button>
+</div>
+<div id="msg" class="f"></div></div></div></section>
+</div>
+<div id="out"></div>
+</div>
+
+<div id="p_red" role="tabpanel" hidden>
+<div class="board">
+<section class="col"><div class="chead"><h2>Menunggu</h2><span class="kn" id="n_red_w">2</span></div><div class="cbody" id="w_red" data-empty="Semua langkah sudah terisi"><div class="kc req" id="st_o2" data-o="1"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">1</span></div><label for="fo2">File Outstanding (.xls / .xlsx)</label><input type="file" id="fo2" accept=".xls,.xlsx"><div class="f" id="fo2_i"></div></div><div class="kc req" id="st_inv" data-o="2"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">2</span></div><label for="fi">Invoice pengiriman (boleh lebih dari satu)</label><input type="file" id="fi" accept=".xls,.xlsx" multiple><div class="f">Qty di invoice dikurangkan dari Outstanding sesuai No. PO dan material.</div><div class="f" id="fi_i"></div></div></div></section>
+<section class="col"><div class="chead"><h2>Selesai</h2><span class="kn" id="n_red_d">0</span></div><div class="cbody" id="d_red" data-empty="Belum ada langkah yang selesai"></div></section>
+<section class="col"><div class="chead"><h2>Hasil</h2></div><div class="cbody"><div class="kc proc"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Proses</span></div>
+<div class="f">Unggah Outstanding dan invoice, lalu unduh Outstanding Terbaru. File Outstanding yang sama dipakai di menu Buat SD Order.</div>
+<div class="actions"><button id="dlo" disabled>Hitung &amp; Unduh Outstanding Terbaru</button></div>
+<div id="msg2" class="f"></div></div></div></section>
+</div>
+<div id="out2"></div>
+</div>
+</section>
+
+<section id="v_users" hidden>
+<div class="sethead"><div><h2>Pengaturan</h2><div class="f">Kelola permintaan daftar dan akses pengguna.</div></div>
+<div class="hbtn"><button id="reload" class="g" type="button">Muat ulang</button><button id="back2" type="button">Kembali ke aplikasi</button></div></div>
+<div class="setgrid">
+<div class="card"><h2>Permintaan masuk <span class="cnt" id="c_req">0</span></h2><div id="l_req"></div></div>
+<div class="card"><h2>Daftar pengguna</h2><div id="l_usr"></div></div>
+<div class="card sc wide"><h2>Log akses terbaru</h2><div id="l_log"></div></div>
+</div>
+<div id="umsg" class="f" role="status"></div>
+</section>
+
+</main>
+</div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+let outWB=null,fileName='SD_ORDER.xlsx',data={o:null,s:null,inv:[],nm:{o:'',s:''}};let tab='sd';
+try{const v=localStorage.getItem('odid');if(v)$('od').value=v}catch(e){}
+
+function readFile(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{try{
+  const wb=XLSX.read(new Uint8Array(r.result),{type:'array',cellDates:false});
+  res(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:null}))}catch(e){rej(e)}};
+  r.onerror=()=>rej(r.error);r.readAsArrayBuffer(f)})}
+
+async function onPick(key,inp,info){
+  const f=inp.files[0];if(!f)return;
+  info.textContent='Membaca…';
+  let html;
+  try{data[key]=await readFile(f);html='<span class="ok">✓ '+f.name+'</span> ('+data[key].length+' baris)'}
+  catch(e){data[key]=null;html='<span class="err">Gagal membaca file: '+e.message+'</span>'}
+  (key==='o'?[$('fo_i'),$('fo2_i')]:[info]).forEach(x=>x.innerHTML=html);
+  data.nm[key]=data[key]?f.name:'';
+  $('go').disabled=!(data.o&&data.s);$('dlo').disabled=!(data.o&&data.inv.length);prog();
+}
+$('fo').onchange=()=>onPick('o',$('fo'),$('fo_i'));
+$('fo2').onchange=()=>onPick('o',$('fo2'),$('fo2_i'));
+$('fs').onchange=()=>onPick('s',$('fs'),$('fs_i'));
+
+const TOK=/BF\d+[A-Z]*\d*/g;
+const num=v=>{if(typeof v==='number')return isFinite(v)?v:0;const n=parseFloat(String(v==null?'':v).replace(/,/g,'').trim());return isNaN(n)?0:n};
+// Kode BF dari sel Shipping Plan: tahan huruf kecil, spasi di depan/belakang, dan "BF 006"
+const codeOf=v=>{if(v==null)return null;const s=String(v).trim().toUpperCase();if(!s.startsWith('BF'))return null;
+  const m=s.match(TOK)||s.replace(/\s+/g,'').match(TOK);return m?m[0]:null};
+
+// ===== Invoice: pengurangan Outstanding =====
+const baseMat=m=>String(m==null?'':m).trim().toUpperCase().replace(/-\d+$/,'');
+const pad2=n=>String(n).padStart(2,'0');
+function fmtTgl(v){
+  if(v==null||v==='')return '';
+  if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*86400000));return pad2(d.getUTCDate())+'/'+pad2(d.getUTCMonth()+1)+'/'+d.getUTCFullYear()}
+  return String(v).trim();
+}
+function parseInvoice(rows,fname){
+  let hr=-1,mc=-1,pc=-1,qc=-1;
+  for(let i=0;i<Math.min(rows.length,40)&&hr<0;i++){
+    const lc=(rows[i]||[]).map(c=>String(c==null?'':c).toLowerCase().replace(/\s+/g,''));
+    const a=lc.findIndex(x=>x.includes('materialnumber')),b=lc.findIndex(x=>x.includes('no.po')),c=lc.findIndex(x=>x.startsWith('qty'));
+    if(a>=0&&b>=0&&c>=0){hr=i;mc=a;pc=b;qc=c}
+  }
+  if(hr<0)throw new Error('header Material Number / NO.PO / Qty tidak ditemukan');
+  let tgl='',no='';
+  for(let i=0;i<hr;i++){
+    const r=rows[i]||[];
+    r.forEach((c,ci)=>{
+      const k=String(c==null?'':c).toLowerCase().replace(/\s+/g,'');
+      if(k!=='date'&&k!=='no.invoice')return;
+      for(let j=ci+1;j<r.length;j++)if(r[j]!=null&&String(r[j]).trim()!==''){
+        if(k==='date'&&!tgl)tgl=fmtTgl(r[j]);
+        if(k==='no.invoice'&&!no)no=String(r[j]).trim();
+        break}
+    });
+  }
+  const lines=[];
+  for(let i=hr+1;i<rows.length;i++){
+    const r=rows[i]||[];
+    if(r.some(c=>/sub\s*total/i.test(String(c==null?'':c))))break;
+    const po=String(r[pc]==null?'':r[pc]).trim(),mat=String(r[mc]==null?'':r[mc]).trim(),q=num(r[qc]);
+    if(!po||!mat||q<=0)continue;
+    lines.push({po,mat,q,item:String(r[pc+1]==null?'':r[pc+1]).trim()});
+  }
+  if(!lines.length)throw new Error('tidak ada baris barang');
+  return {name:fname,no:no||fname,tgl,lines};
+}
+function updInv(){
+  const n=data.inv.length,q=data.inv.reduce((a,v)=>a+v.lines.reduce((x,l)=>x+l.q,0),0);
+  $('inv_stat').textContent=n?n+' invoice siap dipakai ('+q.toLocaleString('id-ID')+' pcs)':'Belum ada invoice. Unggah di menu Kurangi Outstanding.';
+  $('useinv').disabled=!n;
+}
+$('fi').onchange=async()=>{
+  const files=[...$('fi').files],info=$('fi_i');
+  data.inv=[];
+  if(!files.length){info.textContent='';$('st_inv').classList.remove('done');$('st_inv').querySelector('.no').textContent='2';$('dlo').disabled=true;updInv();prog();return}
+  info.textContent='Membaca…';const msgs=[];
+  for(const f of files){
+    try{
+      const inv=parseInvoice(await readFile(f),f.name);
+      if(data.inv.some(x=>x.no===inv.no)){msgs.push('<span class="warn">'+f.name+' dilewati, nomor invoice sama dengan yang sudah dibaca</span>');continue}
+      data.inv.push(inv);
+      msgs.push('<span class="ok">✓ '+inv.no+'</span> ('+inv.lines.length+' baris, '+inv.lines.reduce((a,l)=>a+l.q,0).toLocaleString('id-ID')+' pcs, kirim '+(inv.tgl||'tanggal tidak terbaca')+')');
+    }catch(e){msgs.push('<span class="err">'+f.name+': '+e.message+'</span>')}
+  }
+  info.innerHTML=msgs.join('<br>');
+  const ok=data.inv.length>0;$('st_inv').classList.toggle('done',ok);$('st_inv').querySelector('.no').textContent=ok?'\u2713':'2';
+  $('dlo').disabled=!(data.o&&ok);updInv();prog();
+};
+// Kurangi sisa Outstanding (Qty pesan - Qty terima) dengan qty invoice per No. PO + Material.
+// Baris Outstanding dipakai berurutan dari atas file, tidak pernah dikurangi melebihi sisanya.
+function reduce(force){
+  const red=new Map(),log=[];
+  if(!data.inv.length||!data.o||!(force||$('useinv').checked))return {red,log};
+  const byPo={};
+  for(let i=1;i<data.o.length;i++){const r=data.o[i];if(!r)continue;const po=String(r[6]==null?'':r[6]).trim();if(po)(byPo[po]=byPo[po]||[]).push(i)}
+  const left=i=>num(data.o[i][5])-num(data.o[i][12])-((red.get(i)||{}).qty||0);
+  for(const inv of data.inv)for(const L of inv.lines){
+    const idxs=byPo[L.po]||[];let how='';
+    let cand=idxs.filter(i=>String(data.o[i][9]==null?'':data.o[i][9]).trim().toUpperCase()===L.mat.toUpperCase());
+    if(!cand.length){cand=idxs.filter(i=>baseMat(data.o[i][9])===baseMat(L.mat));if(cand.length)how='Material dicocokkan tanpa akhiran -N ('+String(data.o[cand[0]][9]).trim()+')'}
+    let need=L.q;
+    for(const i of cand){
+      if(need<=0)break;const s=left(i);if(s<=0)continue;
+      const t=Math.min(need,s);need-=t;
+      let e=red.get(i);if(!e){e={qty:0,dates:[],invs:[]};red.set(i,e)}
+      e.qty+=t;if(inv.tgl&&!e.dates.includes(inv.tgl))e.dates.push(inv.tgl);if(!e.invs.includes(inv.no))e.invs.push(inv.no);
+      log.push({inv:inv.no,tgl:inv.tgl,po:L.po,mat:L.mat,item:L.item,q:t,row:i+1,before:s,after:s-t,note:how,bad:false});
+    }
+    if(need>0)log.push({inv:inv.no,tgl:inv.tgl,po:L.po,mat:L.mat,item:L.item,q:need,row:'-',before:'-',after:'-',bad:true,
+      note:cand.length?'Qty invoice melebihi sisa Outstanding, '+need+' pcs tidak terpotong':'No. PO + material tidak ditemukan di Outstanding'});
+  }
+  return {red,log};
+}
+function buildOutstanding(){
+  const {red,log}=reduce(true);
+  const head=(data.o[0]||[]).slice(0,14);while(head.length<14)head.push(null);
+  const aoa=[[...head,'Tanggal Pengiriman','Qty Invoice','Sisa Qty Outstanding']];
+  for(let i=1;i<data.o.length;i++){
+    const r=data.o[i]||[];const e=red.get(i);const row=r.slice(0,14);while(row.length<14)row.push(null);
+    row.push(e?e.dates.join(', '):null,e?e.qty:null,num(r[5])-num(r[12])-(e?e.qty:0));aoa.push(row);
+  }
+  const bukti=[['No. Invoice','Tanggal Pengiriman','No. PO','Material','Nama Item','Qty Invoice dipotong','Baris di Outstanding','Sisa sebelum','Sisa sesudah','Catatan'],
+    ...log.map(l=>[l.inv,l.tgl,l.po,l.mat,l.item,l.q,l.row,l.before,l.after,l.note||''])];
+  const wb=XLSX.utils.book_new();
+  const s1=XLSX.utils.aoa_to_sheet(aoa);s1['!cols']=[12,22,14,14,8,10,16,8,12,16,36,16,10,10,20,14,22].map(w=>({wch:w}));
+  const s2=XLSX.utils.aoa_to_sheet(bukti);s2['!cols']=[26,18,16,16,44,12,14,12,12,50].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,s1,'Outstanding Terbaru');XLSX.utils.book_append_sheet(wb,s2,'Pengurangan Invoice');
+  return {wb,log,red};
+}
+$('dlo').onclick=()=>{
+  try{
+    const r=buildOutstanding();
+    const pot=r.log.filter(l=>!l.bad).reduce((a,l)=>a+l.q,0),bad=r.log.filter(l=>l.bad);
+    saveWB(r.wb,'OUTSTANDING_TERBARU','xlsx','xlsx','msg2');
+    $('out2').innerHTML='<div class="card"><b>'+r.red.size+' baris Outstanding</b> dikurangi, total <b>'+pot.toLocaleString('id-ID')+' pcs</b> dari '+data.inv.length+' invoice.<br>'+
+      (bad.length?'<span class="warn">'+bad.length+' baris invoice tidak terpotong penuh, lihat tanda kuning di bawah</span>':'<span class="ok">Semua baris invoice berhasil dipotong</span>')+'</div>'+
+      '<div class="card sc scl"><table><tr><th>Invoice</th><th>Tgl kirim</th><th>PO</th><th>Material</th><th class="n">Qty</th><th class="n">Baris</th><th class="n">Sisa sebelum</th><th class="n">Sisa sesudah</th><th>Catatan</th></tr>'+
+      r.log.map(l=>'<tr><td>'+l.inv+'</td><td>'+l.tgl+'</td><td>'+l.po+'</td><td>'+l.mat+'</td><td class="n">'+l.q+'</td><td class="n">'+l.row+'</td><td class="n">'+l.before+'</td><td class="n">'+l.after+'</td><td'+(l.bad?' class="bad"':'')+'>'+(l.note||'')+'</td></tr>').join('')+'</table></div>';
+  }catch(e){$('msg2').innerHTML='<span class="err">Gagal membuat Outstanding Terbaru: '+((e&&e.message)||e)+'</span>'}
+};
+
+function build(){
+  // Outstanding: sisa = Qty pesan (F) - Qty terima (M). Urutan file (atas ke bawah) = urutan pemakaian PO.
+  const pool={},poolAny={};const {red,log:invLog}=reduce();
+  for(let i=1;i<data.o.length;i++){
+    const r=data.o[i];if(!r)continue;
+    const rem=num(r[5])-num(r[12])-((red.get(i)||{}).qty||0);
+    const g=String(r[11]==null?'':r[11]).trim().toUpperCase().slice(0,3);
+    if(rem<=0||!g)continue;
+    const nm=String(r[10]==null?'':r[10]);const t=nm.toUpperCase().match(TOK);if(!t)continue;
+    const p={idx:i,po:r[6],date:r[0],name:nm.trim(),mat:String(r[9]==null?'':r[9]).trim(),rem,rem0:rem,used:0};
+    const k=t[t.length-1];
+    pool[g]=pool[g]||{};(pool[g][k]=pool[g][k]||[]).push(p);
+    poolAny[g]=poolAny[g]||{};new Set(t).forEach(x=>{(poolAny[g][x]=poolAny[g][x]||[]).push(p)});
+  }
+  // Shipping Plan: cari semua tabel dari header "Goods Name & Specification" (cek 6 baris pertama)
+  const sp=data.s,tables=[],seen=new Set();
+  for(let hr=0;hr<Math.min(6,sp.length);hr++){
+    (sp[hr]||[]).forEach((c,ci)=>{
+      if(c&&String(c).toLowerCase().includes('goods name')&&!seen.has(ci)){
+        seen.add(ci);
+        const top=sp[Math.max(hr-1,0)]||[];
+        const lab=hr>0?[top[ci-1],top[ci]].filter(Boolean).join(' ').trim():'';
+        tables.push({label:lab||('Tabel kolom '+(ci+1)),grp:/A5/i.test(lab)?'HCG':'H1A',kc:ci,qc:ci+1,hr});
+      }
+    });
+  }
+  tables.sort((x,y)=>x.kc-y.kc);
+  const blocks=[],notes=[];
+  for(const t of tables){
+    for(let r=t.hr+1;r<sp.length;r++){
+      const row=sp[r]||[];const c=codeOf(row[t.kc]);
+      if(!c)continue;
+      const q=num(row[t.qc]);
+      if(q<=0){notes.push([t.label,c,'-','-','Qty READY kosong, dilewati']);continue}
+      let list=(pool[t.grp]&&pool[t.grp][c])||[];
+      let via='';
+      if(!list.length&&poolAny[t.grp]&&poolAny[t.grp][c]){list=poolAny[t.grp][c];via=' (dicocokkan dari kode BF non-terakhir di nama item)'}
+      let need=q;const rows=[];
+      for(const p of list){
+        if(need<=0)break;if(p.rem<=0)continue;
+        const take=Math.min(need,p.rem);p.rem-=take;p.used+=take;need-=take;rows.push({p,take});
+      }
+      blocks.push({label:t.label,ti:tables.indexOf(t),code:c,q,rows,got:q-need});
+      if(!list.length){
+        const other=Object.keys(pool).concat(Object.keys(poolAny)).filter((g,i,a)=>a.indexOf(g)===i&&g!==t.grp&&((pool[g]&&pool[g][c])||(poolAny[g]&&poolAny[g][c])));
+        notes.push([t.label,c,q,0,'Tidak ada outstanding '+t.grp+' untuk kode ini'+(other.length?' (kode ada di grup '+other.join(', ')+')':'')]);
+      }else if(need>0)notes.push([t.label,c,q,q-need,'Sisa outstanding kurang '+need+via]);
+      else if(via)notes.push([t.label,c,q,q,'Terpenuhi'+via]);
+    }
+  }
+  const od=$('od').value.trim();
+  const hdr=['customer','customer code','customer PONO','customer POSEQ','customer PRNO','customer ODNO','customer CPO','goodscode','SAPSKU','item','color','style','size','qty','units','gettime','MaterialCODE','ODID'];
+  const cn=['客户名称','客户代号','客户采购单号','客户采购项次','客户工令号','客户订单号','客户CPO','客户物品代码','客户物品SKU','客户物品描述','颜色','形体','尺寸','订购数量','单位','接单日期','客户料号','接单序号'];
+  // Urutan SD Order: per tabel Shipping Plan (kiri ke kanan), kode BF sesuai urutan baris di tabel,
+  // PO sesuai urutan file Outstanding. Satu baris kosong memisahkan tabel yang berbeda.
+  const aoa=[hdr,cn];let n=0,tot=0,prevTi=null;
+  for(const b of blocks){
+    if(!b.rows.length)continue;
+    if(prevTi!==null&&b.ti!==prevTi)aoa.push([]);
+    prevTi=b.ti;
+    for(const {p,take} of b.rows){
+      aoa.push(['FICI','FICI',p.po,null,p.po,null,null,p.name,null,null,null,null,null,take,'PCS',p.date,p.mat.replace(/-\d+$/,''),od]);n++;tot+=take;
+    }
+  }
+  const cek=[['Tabel shipping plan','Kode BF','Qty request','Qty terpenuhi','Catatan'],...notes,[],['Ringkasan per request'],['Tabel','Kode BF','Qty request','Qty dialokasikan','Jumlah PO dipakai'],
+    ...blocks.map(b=>[b.label,b.code,b.q,b.got,b.rows.length])];
+  const rinci=[['Tabel shipping plan','Kode BF','Qty request','PO','Baris di file Outstanding','Qty diambil','Sisa PO setelah semua request']];
+  blocks.forEach(b=>b.rows.forEach(({p,take})=>rinci.push([b.label,b.code,b.q,p.po,p.idx+1,take,p.rem0-p.used])));
+  const wb=XLSX.utils.book_new();
+  const s1=XLSX.utils.aoa_to_sheet(aoa);s1['!cols']=[10,12,18,12,18,12,10,42,10,8,8,8,8,8,8,12,16,15].map(w=>({wch:w}));
+  const s2=XLSX.utils.aoa_to_sheet(cek);s2['!cols']=[28,14,14,16,60].map(w=>({wch:w}));
+  const s3=XLSX.utils.aoa_to_sheet(rinci);s3['!cols']=[28,14,14,20,22,14,28].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb,s1,'sheet1');XLSX.utils.book_append_sheet(wb,s2,'Cek');XLSX.utils.book_append_sheet(wb,s3,'Rincian');
+  return {wb,tables,blocks,notes,n,tot,od,invUsed:invLog.length>0,invQty:invLog.filter(l=>!l.bad).reduce((a,l)=>a+l.q,0),invRows:red.size,invBad:invLog.filter(l=>l.bad).length};
+}
+
+$('go').onclick=()=>{
+  $('msg').textContent='';$('out').innerHTML='';
+  try{localStorage.setItem('odid',$('od').value)}catch(e){}
+  let r;try{r=build()}catch(e){$('msg').innerHTML='<span class="err">Gagal memproses: '+e.message+'</span>';return}
+  if(!r.tables.length){$('msg').innerHTML='<span class="err">Tabel tidak ditemukan di Shipping Plan. Pastikan baris 2 berisi header “Goods Name & Specification”.</span>';return}
+  outWB=r.wb;fileName='SD_ORDER_'+r.od;prog();logEv('buat_sd_order',r.n);$('dl').disabled=false;$('dl2').disabled=false;
+  const short=r.notes.filter(x=>!/kosong/.test(x[4])),empty=r.notes.filter(x=>/kosong/.test(x[4]));
+  let h='<div class="card"><b>'+r.blocks.length+' request</b> diproses, <b>'+r.n+' baris</b> SD, total <b>'+r.tot.toLocaleString('id-ID')+' pcs</b>.<br>'+
+   (short.length?'<span class="warn">'+short.length+' request belum terpenuhi penuh</span>':'<span class="ok">Semua request terpenuhi penuh</span>')+
+   (empty.length?'<br><span class="warn">'+empty.length+' request dilewati karena Qty READY kosong</span>':'')+
+   (r.invUsed?'<br>Pengurangan invoice: <b>'+r.invQty.toLocaleString('id-ID')+' pcs</b> di '+r.invRows+' baris Outstanding'+(r.invBad?' <span class="warn">('+r.invBad+' baris invoice tidak terpotong penuh)</span>':''):'')+'</div>';
+  h+='<div class="card sc"><table><tr><th>Tabel</th><th>Grup</th><th>Kode</th></tr>'+r.tables.map(t=>'<tr><td>'+t.label+'</td><td>'+t.grp+'</td><td>kolom '+XLSX.utils.encode_col(t.kc)+'</td></tr>').join('')+'</table></div>';
+  if(r.notes.length)h+='<div class="card sc"><table><tr><th>Tabel</th><th>Kode</th><th class="n">Request</th><th class="n">Terpenuhi</th><th>Catatan</th></tr>'+
+    r.notes.map(x=>'<tr><td>'+x[0]+'</td><td>'+x[1]+'</td><td class="n">'+x[2]+'</td><td class="n">'+x[3]+'</td><td>'+x[4]+'</td></tr>').join('')+'</table></div>';
+  $('out').innerHTML=h;
+};
+
+function save(ext,type){if(outWB)saveWB(outWB,fileName,ext,type)}
+function saveWB(wbk,fname,ext,type,mid){mid=mid||'msg';
+  try{
+    const buf=XLSX.write(wbk,{bookType:type,type:'array'});
+    const blob=new Blob([buf],{type:'application/octet-stream'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname+'.'+ext;
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+    $(mid).innerHTML='<span class="ok">File diunduh: '+fname+'.'+ext+'</span>';
+  }catch(e){$(mid).innerHTML='<span class="err">Gagal menyimpan: '+((e&&e.message)||e)+'</span>'}
+}
+$('dl').onclick=()=>save('xlsx','xlsx');
+$('dl2').onclick=()=>save('xls','biff8');
+function prog(){
+  const a=!!data.o,b=!!data.s,c=!!$('od').value.trim(),d=!!outWB,e=data.inv.length>0;
+  let n,tot,hint;
+  if(tab==='red'){n=a+e;tot=2;hint=a&&e?'Siap! Tekan Hitung & Unduh Outstanding Terbaru.':a?'Sedikit lagi, tinggal unggah invoice.':'Yuk mulai! Unggah file Outstanding dulu.'}
+  else{n=a+b+c+d;tot=4;hint=d?'Selesai! SD Order siap diunduh. Kerja bagus!':(a&&b)?'Siap! Tekan Buat SD Order.':(a||b)?'Sedikit lagi, tinggal satu file.':'Yuk mulai! Unggah file Outstanding dulu.'}
+  const pct=Math.round(n*100/tot);
+  $('bar').style.width=pct+'%';$('pt').textContent='Progres: '+pct+'% ('+n+' dari '+tot+' langkah)';$('hint').textContent=hint;
+  [['st1',a,'1'],['st2',b,'2'],['st3',c,'3'],['st_o2',a,'1']].forEach(([id,v,no])=>{const el=$(id);el.classList.toggle('done',v);el.querySelector('.no').textContent=v?'\u2713':no});
+  placeCards([['w_sd','d_sd','n_sd_w','n_sd_d',[['st1',a],['st2',b],['st3',c]]],['w_red','d_red','n_red_w','n_red_d',[['st_o2',a],['st_inv',e]]]]);
+  updRecent();
+}
+// Kartu langkah pindah dari kolom Menunggu ke Selesai saat terisi (kartu yang sedang diketik tidak dipindah)
+function placeCards(boards){
+  const act=document.activeElement;
+  boards.forEach(([w,d,nw,nd,list])=>{
+    list.forEach(([id,v])=>{
+      const el=$(id),tgt=$(v?d:w);
+      if(el.parentNode===tgt||el.contains(act))return;
+      const nxt=[...tgt.children].find(x=>+x.dataset.o>+el.dataset.o);
+      tgt.insertBefore(el,nxt||null);
+      el.classList.remove('land');void el.offsetWidth;el.classList.add('land');
+    });
+    [[w,nw],[d,nd]].forEach(([col,cnt])=>{const x=$(col);x.classList.toggle('ec',!x.children.length);$(cnt).textContent=x.children.length});
+  });
+}
+function updRecent(){
+  const set=(id,txt,on)=>{const el=$(id);el.classList.toggle('on',on);el.querySelector('small').textContent=txt};
+  set('r_o',data.nm.o||'Belum diunggah',!!data.o);
+  set('r_s',data.nm.s||'Belum diunggah',!!data.s);
+  set('r_i',data.inv.length?data.inv.map(v=>v.no).join(', '):'Belum diunggah',data.inv.length>0);
+}
+const PAGES={sd:['Buat SD Order','Unggah Outstanding dan Shipping Plan, lalu unduh SD Order yang sudah jadi. File diproses di komputer Anda, tidak dikirim ke mana pun.'],
+  red:['Kurangi Outstanding','Unggah Outstanding dan invoice pengiriman, lalu unduh Outstanding Terbaru lengkap dengan bukti pengurangan.']};
+function syncHead(v){
+  let t,sub;
+  if(v==='auth'){t='SD Order Generator by Laras';sub='Masuk untuk mulai. File diproses di komputer Anda, tidak dikirim ke mana pun.'}
+  else if(v==='users'){t='Pengaturan';sub='Kelola permintaan daftar dan akses pengguna.'}
+  else{t=PAGES[tab][0];sub=PAGES[tab][1]}
+  $('ph_t').textContent=t;$('ph_s').textContent=sub;$('crumb').textContent=v==='auth'?'Masuk':t;
+  $('hintw').hidden=v!=='app';
+  [['tab_sd','sd'],['tab_red','red']].forEach(([id,k])=>{const on=v==='app'&&tab===k;$(id).classList.toggle('on',on);if(on)$(id).setAttribute('aria-current','page');else $(id).removeAttribute('aria-current')});
+}
+function setTab(t){tab=t;$('p_sd').hidden=t!=='sd';$('p_red').hidden=t!=='red';view('app');prog()}
+$('tab_sd').onclick=()=>setTab('sd');$('tab_red').onclick=()=>setTab('red');
+new MutationObserver(()=>{$('ava').textContent=($('who').textContent.trim()[0]||'?').toUpperCase()}).observe($('who'),{childList:true,characterData:true,subtree:true});
+const d=new Date();
+$('tgl').textContent=new Intl.DateTimeFormat('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(d);
+$('yr').textContent=d.getFullYear();
+
+// ---- Sambungan ke Google Sheet (Apps Script). Isi API_URL dengan URL Web App berakhiran /exec
+const API_URL='https://script.google.com/macros/s/AKfycbyBA17V2i3VmFx6ffHJ7iDH6Ryhf1WBnmh6WUUKLLGLuZp7pXOAm2TmcCA_6TZeTCvuiQ/exec';
+const ADMIN_WA='6289621154915';
+let me=null;const BASE=document.title;
+const tok=()=>{try{return localStorage.getItem('sdtok')||''}catch(e){return ''}};
+const setTok=v=>{try{v?localStorage.setItem('sdtok',v):localStorage.removeItem('sdtok')}catch(e){}};
+const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function api(action,p){
+  if(!API_URL)throw new Error('Server belum disambungkan. Isi API_URL di file HTML.');
+  let r;try{r=await fetch(API_URL,{method:'POST',body:JSON.stringify(Object.assign({action,token:tok()},p||{}))})}
+  catch(e){throw new Error('Tidak bisa terhubung ke server. Periksa koneksi internet.')}
+  let j;try{j=await r.json()}catch(e){throw new Error('Jawaban server tidak terbaca.')}
+  if(!j.ok){const er=new Error(j.error||'Gagal');er.auth=!!j.auth;er.status=j.status;throw er}
+  return j;
+}
+function logEv(ev,n){
+  if(!API_URL||!tok())return;
+  try{fetch(API_URL,{method:'POST',keepalive:true,body:JSON.stringify({action:'log',token:tok(),ev,n:n||''})})}catch(e){}
+}
+
+function view(v){
+  ['auth','app','users'].forEach(x=>$('v_'+x).hidden=x!==v);
+  document.body.classList.toggle('in',v!=='auth');
+  $('tools').hidden=v==='auth';$('gear').classList.toggle('on',v==='users');
+  syncHead(v);
+}
+function enter(u){
+  me=u;$('who').textContent=u.username+(u.role==='admin'?' (master)':'');
+  $('gear').hidden=u.role!=='admin';
+  view('app');
+  if(u.role==='admin')refreshUsers(true);
+}
+function kick(msg){
+  setTok('');me=null;view('auth');authTab('in');document.title=BASE;$('gbadge').hidden=true;$('gear').classList.remove('alert');
+  if(msg)$('amsg').innerHTML='<span class="warn">'+esc(msg)+'</span>';
+}
+
+
+/* ---- Tombol mata di kolom password ---- */
+function setEye(b,show){
+  const i=$(b.dataset.for);i.type=show?'text':'password';
+  b.setAttribute('aria-pressed',show);b.setAttribute('aria-label',show?'Sembunyikan password':'Tampilkan password');
+}
+document.querySelectorAll('.eye').forEach(b=>b.addEventListener('click',()=>setEye(b,$(b.dataset.for).type==='password')));
+
+/* ---- Masuk / Daftar ---- */
+function authTab(t){
+  $('a_in').classList.toggle('on',t==='in');$('a_up').classList.toggle('on',t==='up');
+  $('f_in').hidden=t!=='in';$('f_up').hidden=t!=='up';
+  $('done').hidden=true;$('amsg').innerHTML='';document.querySelectorAll('.eye').forEach(b=>setEye(b,false));
+  document.querySelector('#v_auth>.segs').hidden=false;
+}
+$('a_in').onclick=()=>authTab('in');$('a_up').onclick=()=>authTab('up');
+
+function waLink(u,w){
+  return 'https://wa.me/'+ADMIN_WA+'?text='+encodeURIComponent('Halo Admin, saya ingin daftar SD Order Generator.\nUsername: '+u+(w?'\nNo. WA: '+w:'')+'\nMohon di-ACC ya, terima kasih.');
+}
+function showWait(title,u,w){
+  $('f_in').hidden=true;$('f_up').hidden=true;$('amsg').innerHTML='';
+  document.querySelector('#v_auth>.segs').hidden=true;
+  const d=$('done');d.hidden=false;
+  d.innerHTML='<h2>'+esc(title)+'</h2><p>Akun <b>'+esc(u)+'</b> akan aktif setelah disetujui admin. Supaya cepat diproses, beri tahu admin lewat WhatsApp. Setelah disetujui, cukup masuk dengan username dan password.</p>'+
+    '<div class="row2"><a class="btn" href="'+waLink(u,w)+'" target="_blank" rel="noopener">Hubungi admin via WhatsApp</a><button class="g" id="back" type="button">Kembali ke Masuk</button></div>';
+  $('back').onclick=()=>authTab('in');
+}
+
+$('f_in').onsubmit=async e=>{
+  e.preventDefault();const b=$('b_in'),u=$('li_u').value.trim().toLowerCase();
+  b.disabled=true;$('amsg').textContent='Memeriksa…';
+  try{const j=await api('login',{username:u,password:$('li_p').value});
+    setTok(j.token);$('li_p').value='';setEye(document.querySelector('.eye[data-for=li_p]'),false);$('amsg').textContent='';enter(j.user)}
+  catch(er){if(er.status==='menunggu')showWait('Menunggu persetujuan',u);
+    else $('amsg').innerHTML='<span class="err">'+esc(er.message)+'</span>'}
+  b.disabled=false;
+};
+$('f_up').onsubmit=async e=>{
+  e.preventDefault();const b=$('b_up'),u=$('su_u').value.trim().toLowerCase();
+  let w=$('su_w').value.replace(/\D/g,'');if(w.startsWith('0'))w='62'+w.slice(1);
+  if(!/^[a-z0-9._]{3,20}$/.test(u)){$('amsg').innerHTML='<span class="err">Username 3-20 karakter: huruf kecil, angka, titik, atau underscore.</span>';return}
+  if(w.length<9||w.length>15){$('amsg').innerHTML='<span class="err">Nomor WhatsApp tidak valid.</span>';return}
+  b.disabled=true;$('amsg').textContent='Mengirim…';
+  try{await api('signup',{username:u,wa:w,password:$('su_p').value});$('su_p').value='';showWait('Permintaan terkirim',u,w)}
+  catch(er){$('amsg').innerHTML='<span class="err">'+esc(er.message)+'</span>'}
+  b.disabled=false;
+};
+$('bye').onclick=async()=>{try{await api('logout')}catch(e){}kick()};
+$('gear').onclick=()=>{if($('v_users').hidden){view('users');refreshUsers()}else view('app')};
+$('back2').onclick=()=>view('app');
+$('reload').onclick=()=>refreshUsers();
+
+/* ---- Panel admin ---- */
+const ST={disetujui:['Disetujui','s-ok'],menunggu:['Menunggu','s-wt'],ditolak:['Ditolak','s-bad'],dicabut:['Dicabut','s-bad']};
+async function refreshUsers(silent){
+  if(!silent)$('umsg').textContent='Memuat…';
+  try{renderUsers(await api('users'));$('umsg').textContent=''}
+  catch(er){if(er.auth)return kick(er.message);if(!silent)$('umsg').innerHTML='<span class="err">'+esc(er.message)+'</span>'}
+}
+function row(u,btns){
+  const st=u.role==='admin'?['Master','s-ad']:(ST[u.status]||[u.status,'']);
+  return '<div class="urow"><div class="uinfo"><b>'+esc(u.username)+'</b><span class="badge '+st[1]+'">'+st[0]+'</span>'+
+    '<div class="f">WA <a href="https://wa.me/'+esc(u.wa)+'" target="_blank" rel="noopener">+'+esc(u.wa)+'</a>, daftar '+esc(u.tgl_daftar)+
+    (u.login_terakhir?', terakhir masuk '+esc(u.login_terakhir):'')+'</div></div><div class="uact">'+btns+'</div></div>';
+}
+const bt=(act,u,label,cls)=>'<button type="button" class="'+(cls||'')+'" data-act="'+act+'" data-u="'+esc(u)+'">'+label+'</button>';
+function renderUsers(j){
+  const us=j.users,pend=us.filter(u=>u.status==='menunggu'),rest=us.filter(u=>u.status!=='menunggu');
+  $('c_req').textContent=pend.length;$('gbadge').textContent=pend.length;$('gbadge').hidden=!pend.length;$('gear').classList.toggle('alert',!!pend.length);$('gear').title=pend.length?pend.length+' permintaan daftar baru':'Pengaturan';document.title=(pend.length?'('+pend.length+') ':'')+BASE;
+  $('l_req').innerHTML=pend.length?pend.map(u=>row(u,bt('disetujui',u.username,'Setujui')+bt('ditolak',u.username,'Tolak','dg'))).join(''):'<div class="f">Belum ada permintaan baru.</div>';
+  $('l_usr').innerHTML=rest.length?rest.map(u=>row(u,u.role==='admin'?'':
+    (u.status==='disetujui'?bt('dicabut',u.username,'Cabut akses','dg'):bt('disetujui',u.username,'Setujui'))+bt('hapus',u.username,'Hapus','dg'))).join(''):'<div class="f">Belum ada pengguna.</div>';
+  $('l_log').innerHTML=j.logs.length?'<table><tr><th>Waktu</th><th>User</th><th>Aksi</th><th>Detail</th></tr>'+
+    j.logs.map(l=>'<tr><td>'+esc(l.t)+'</td><td>'+esc(l.u)+'</td><td>'+esc(l.a)+'</td><td>'+esc(l.d)+'</td></tr>').join('')+'</table>':'<div class="f">Belum ada log.</div>';
+}
+$('v_users').addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-act]');if(!b)return;
+  const act=b.dataset.act,u=b.dataset.u;
+  if(act==='hapus'&&!confirm('Hapus pengguna "'+u+'"? Tindakan ini tidak bisa dibatalkan.'))return;
+  b.disabled=true;
+  try{await api(act==='hapus'?'delete':'setstatus',{u,status:act});await refreshUsers()}
+  catch(er){if(er.auth)return kick(er.message);$('umsg').innerHTML='<span class="err">'+esc(er.message)+'</span>';b.disabled=false}
+});
+
+/* ---- Mulai ---- */
+(async()=>{
+  if(!API_URL){view('auth');$('amsg').innerHTML='<span class="warn">Server belum disambungkan. Isi API_URL di file HTML (lihat panduan pemasangan).</span>';return}
+  if(!tok()){view('auth');return}
+  try{enter((await api('me')).user)}catch(e){setTok('');view('auth')}
+})();
+$('od').addEventListener('input',prog);$('od').addEventListener('blur',prog);prog();
+</script>
+</body>
+</html>
