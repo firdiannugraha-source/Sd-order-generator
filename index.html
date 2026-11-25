@@ -7,6 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>▦</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
 /* ---- Cek permintaan daftar baru (admin) ---- */
 const pollAdmin=()=>{if(me&&me.role==='admin'&&!document.hidden&&$('v_users').hidden)refreshUsers(true)};
@@ -356,6 +357,8 @@ tr:hover td{background:#fafbff}
 </div>
 
 <div id="p_red" role="tabpanel" hidden>
+<div class="segs" id="red_sel" role="tablist" aria-label="Jenis Outstanding" style="max-width:420px;margin-bottom:16px"><button type="button" id="m_fici" class="on" style="flex:1">FICI</button><button type="button" id="m_sci" style="flex:1">SCI</button><button type="button" id="m_uni" style="flex:1">UNI</button></div>
+<div id="red_fici">
 <div class="board">
 <section class="col"><div class="chead"><h2>Menunggu</h2><span class="kn" id="n_red_w">2</span></div><div class="cbody" id="w_red" data-empty="Semua langkah sudah terisi"><div class="kc req" id="st_o2" data-o="1"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">1</span></div><label for="fo2">File Outstanding (.xls / .xlsx)</label><input type="file" id="fo2" accept=".xls,.xlsx"><div class="f" id="fo2_i"></div></div><div class="kc req" id="st_inv" data-o="2"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">2</span></div><label for="fi">Invoice pengiriman (boleh lebih dari satu)</label><input type="file" id="fi" accept=".xls,.xlsx" multiple><div class="f">Qty di invoice dikurangkan dari Outstanding sesuai No. PO dan material.</div><div class="f" id="fi_i"></div></div></div></section>
 <section class="col"><div class="chead"><h2>Selesai</h2><span class="kn" id="n_red_d">0</span></div><div class="cbody" id="d_red" data-empty="Belum ada langkah yang selesai"></div></section>
@@ -365,6 +368,22 @@ tr:hover td{background:#fafbff}
 <div id="msg2" class="f"></div></div></div></section>
 </div>
 <div id="out2"></div>
+</div>
+<div id="red_uni" hidden>
+<div class="board">
+<section class="col"><div class="chead"><h2>Menunggu</h2><span class="kn" id="n_uni_w">3</span></div><div class="cbody" id="w_uni" data-empty="Semua langkah sudah terisi">
+<div class="kc req" id="st_u1" data-o="1"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">1</span></div><label for="fu_rec">File Outstanding Record UNI / SCI (.xlsx)</label><input type="file" id="fu_rec" accept=".xlsx"><div class="f" id="fu_rec_i"></div></div>
+<div class="kc req" id="st_u2" data-o="2"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">2</span></div><label for="fu_inv">Invoice / shipping list (boleh lebih dari satu)</label><input type="file" id="fu_inv" accept=".xlsx" multiple><div class="f">Kolom yang dibaca: customer PONO, MaterialCODE, goodscode, qty, ODID.</div><div class="f" id="fu_inv_i"></div></div>
+<div class="kc req" id="st_u3" data-o="3"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">3</span></div><label>No. waybill (PA) dan tanggal kirim per ODID</label><div id="u_grp" class="f">Muncul setelah invoice diunggah.</div></div>
+</div></section>
+<section class="col"><div class="chead"><h2>Selesai</h2><span class="kn" id="n_uni_d">0</span></div><div class="cbody" id="d_uni" data-empty="Belum ada langkah yang selesai"></div></section>
+<section class="col"><div class="chead"><h2>Hasil</h2></div><div class="cbody"><div class="kc proc"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Proses</span></div>
+<div class="f">Qty invoice dicatat di slot Waybill / Shipping Date / QTY Shipment yang masih kosong pada file record. Baris error tidak diubah.</div>
+<div class="actions"><button id="dlu" disabled>Unduh Outstanding Terbaru</button></div>
+<div id="msgu" class="f"></div></div></div></section>
+</div>
+<div id="outu"></div>
+</div>
 </div>
 </section>
 
@@ -384,7 +403,7 @@ tr:hover td{background:#fafbff}
 
 <script>
 const $=id=>document.getElementById(id);
-let outData=null,outWB=null,fileName='SD_ORDER.xlsx',data={o:null,s:null,inv:[],nm:{o:'',s:''},fmt:'shengda'};let tab='sd';
+let outData=null,outWB=null,fileName='SD_ORDER.xlsx',data={o:null,s:null,inv:[],nm:{o:'',s:''},fmt:'shengda'};let tab='sd';var U={rec:null,groups:[],plan:null};
 // ODID: awalan SD + tahun + bulan (SD2611, SD2612, SD2701, ...) otomatis dari tanggal hari ini
 const odPrefix=(d=new Date())=>'SD'+String(d.getFullYear()).slice(-2)+String(d.getMonth()+1).padStart(2,'0');
 $('od').value=odPrefix();
@@ -827,13 +846,13 @@ $('dl2').onclick=()=>save('xls','biff8');
 function prog(){
   const a=!!data.o,b=!!data.s,c=$('od').value.trim().length>odPrefix().length,d=!!outWB,e=data.inv.length>0;
   let n,tot,hint;
-  if(tab==='red'){n=a+e;tot=2;hint=a&&e?'Siap! Tekan Hitung & Unduh Outstanding Terbaru.':a?'Sedikit lagi, tinggal unggah invoice.':'Yuk mulai! Unggah file Outstanding dulu.'}
+  if(tab==='red'&&redMode!=='fici'){const u=uniState();n=u[0]+u[1]+u[2];tot=3;hint=u[2]?'Siap! Tekan Unduh Outstanding Terbaru.':u[1]?'Isi waybill dan tanggal untuk tiap ODID.':u[0]?'Sedikit lagi, tinggal unggah invoice / shipping list.':'Yuk mulai! Unggah file Outstanding record dulu.'}else if(tab==='red'){n=a+e;tot=2;hint=a&&e?'Siap! Tekan Hitung & Unduh Outstanding Terbaru.':a?'Sedikit lagi, tinggal unggah invoice.':'Yuk mulai! Unggah file Outstanding dulu.'}
   else{n=a+b+c+d;tot=4;hint=d&&c?'Selesai! SD Order siap diunduh. Kerja bagus!':d?'SD Order sudah dibuat, tapi ODID belum lengkap. Tambahkan nomor urut di belakang awalan.':(a&&b)?'Siap! Tekan Buat SD Order.':(a||b)?'Sedikit lagi, tinggal satu file.':'Yuk mulai! Unggah file Outstanding dulu.'}
   const pct=Math.round(n*100/tot);
   $('bar').style.width=pct+'%';$('pt').textContent='Progres: '+pct+'% ('+n+' dari '+tot+' langkah)';$('hint').textContent=hint;
   [['st1',a,'1'],['st2',b,'2'],['st3',c,'3'],['st_o2',a,'1']].forEach(([id,v,no])=>{const el=$(id);el.classList.toggle('done',v);el.querySelector('.no').textContent=v?'\u2713':no});
-  placeCards([['w_sd','d_sd','n_sd_w','n_sd_d',[['st1',a],['st2',b],['st3',c]]],['w_red','d_red','n_red_w','n_red_d',[['st_o2',a],['st_inv',e]]]]);
-  updRecent();
+  placeCards([['w_sd','d_sd','n_sd_w','n_sd_d',[['st1',a],['st2',b],['st3',c]]],['w_red','d_red','n_red_w','n_red_d',[['st_o2',a],['st_inv',e]]],['w_uni','d_uni','n_uni_w','n_uni_d',(()=>{const u=uniState();return [['st_u1',u[0]],['st_u2',u[1]],['st_u3',u[2]]]})()]]);
+  uniMarks();updRecent();
 }
 // Kartu langkah pindah dari kolom Menunggu ke Selesai saat terisi (kartu yang sedang diketik tidak dipindah)
 function placeCards(boards){
@@ -867,6 +886,151 @@ function syncHead(v){
   [['tab_sd','sd'],['tab_red','red']].forEach(([id,k])=>{const on=v==='app'&&tab===k;$(id).classList.toggle('on',on);if(on)$(id).setAttribute('aria-current','page');else $(id).removeAttribute('aria-current')});
 }
 function setTab(t){tab=t;$('p_sd').hidden=t!=='sd';$('p_red').hidden=t!=='red';view('app');prog()}
+
+// ===== Kurangi Outstanding UNI & SCI =====
+// Aturan: cocokkan No. PO + Material code; nama barang harus sama; waybill yang sudah tercatat dilewati;
+// qty tidak boleh melebihi sisa PO (tidak dipotong sebagian); isi slot Waybill/Shipping Date/QTY Shipment yang kosong.
+const uEsc=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uNorm=x=>String(x==null?'':x).replace(/\s+/g,' ').trim().toLowerCase();
+const uFmt=n=>Number(n).toLocaleString('id-ID');
+const uNum=v=>typeof v==='number'?v:(v===''||v==null||v instanceof Date?NaN:Number(v));
+function uVal(c){let v=c.value;if(v&&typeof v==='object'&&!(v instanceof Date)){if('result' in v)return v.result;if(v.richText)return v.richText.map(t=>t.text).join('');if('text' in v)return v.text}return v}
+const uToday=()=>{const d=new Date();return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())};
+async function uLoad(buf){const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);return wb}
+function uHead(ws){const m={};ws.getRow(1).eachCell({includeEmpty:false},(c,i)=>{const t=uNorm(uVal(c));if(t&&!(t in m))m[t]=i});return m}
+const uColL=n=>{let t='';while(n>0){const m=(n-1)%26;t=String.fromCharCode(65+m)+t;n=Math.floor((n-1)/26)}return t};
+function uGet(g){const w=document.querySelector('[data-ug="'+g.id+'"][data-k="wb"]'),d=document.querySelector('[data-ug="'+g.id+'"][data-k="dt"]');return {wb:w?w.value.trim():'',dt:d?d.value:''}}
+function uReady(){return U.groups.length>0&&U.groups.every(g=>{const i=uGet(g);return i.wb&&i.dt})}
+var redMode='fici';
+function setMode(m){
+  redMode=m;
+  $('red_fici').hidden=m!=='fici';$('red_uni').hidden=m==='fici';
+  ['fici','sci','uni'].forEach(k=>{$('m_'+k).classList.toggle('on',k===m)});
+  const n=m.toUpperCase();
+  const lb=document.querySelector('label[for="fu_rec"]');if(lb)lb.textContent='File Outstanding Record '+n+' (.xlsx)';
+  $('ph_s').textContent=m==='fici'?PAGES.red[1]:'Unggah Outstanding Record '+n+' dan invoice / shipping list, isi waybill dan tanggal kirim, lalu unduh Outstanding Terbaru. File diproses di komputer Anda, tidak dikirim ke mana pun.';
+  prog();
+}
+$('m_fici').onclick=()=>setMode('fici');$('m_sci').onclick=()=>setMode('sci');$('m_uni').onclick=()=>setMode('uni');
+function uniState(){return [!!U.rec,U.groups.length>0,uReady()]}
+function uniMarks(){[['st_u1',0,'1'],['st_u2',1,'2'],['st_u3',2,'3']].forEach(([id,k,no])=>{const el=$(id),v=uniState()[k];el.classList.toggle('done',v);el.querySelector('.no').textContent=v?'\u2713':no})}
+
+$('fu_rec').onchange=async e=>{
+  const f=e.target.files[0],info=$('fu_rec_i');U.rec=null;
+  if(!f){info.textContent='';uniRefresh();return}
+  info.textContent='Membaca…';
+  try{
+    const buf=await f.arrayBuffer(),wb=await uLoad(buf);
+    const ws=wb.worksheets.find(w=>{const h=uHead(w);return h['po no']&&h['material code']&&h['qty']});
+    if(!ws)throw new Error('Sheet dengan kolom PO NO, MATERIAL CODE, QTY tidak ditemukan.');
+    const h=uHead(ws),cols={po:h['po no'],mc:h['material code'],gn:h['goodsname'],qty:h['qty'],out:h['outstanding']};
+    const slots=[];ws.getRow(1).eachCell({includeEmpty:false},(c,i)=>{if(uNorm(uVal(c)).includes('waybill'))slots.push({w:i,d:i+1,q:i+2})});
+    if(!slots.length)throw new Error('Kolom Waybill / Shipping Date / QTY Shipment tidak ditemukan.');
+    const rows=new Map();let total=0;
+    ws.eachRow((row,r)=>{if(r===1)return;
+      const po=uVal(row.getCell(cols.po)),mc=uVal(row.getCell(cols.mc));if(po==null||mc==null)return;
+      const q=uNum(uVal(row.getCell(cols.qty)));if(isNaN(q))return;
+      let shipped=0;const free=[],wbs=new Set();
+      slots.forEach((s,k)=>{const sq=uNum(uVal(row.getCell(s.q))),sw=uVal(row.getCell(s.w));
+        if(!isNaN(sq)&&sq!==0)shipped+=sq;
+        if(sw!=null&&sw!=='')wbs.add(uNorm(sw));
+        if((isNaN(sq)||sq===0)&&(sw==null||sw===''))free.push(k)});
+      rows.set(uNorm(po)+'|'+uNorm(mc),{r,q,shipped,free,wbs,gn:uNorm(uVal(row.getCell(cols.gn)))});
+      total+=q-shipped});
+    U.rec={buf,name:f.name,sheet:ws.name,cols,slots,rows,total};
+    info.innerHTML='<span class="ok">✓ '+uEsc(f.name)+'</span> (sheet '+uEsc(ws.name)+', '+uFmt(rows.size)+' baris, total outstanding '+uFmt(total)+')';
+  }catch(er){U.rec=null;info.innerHTML='<span class="err">Gagal membaca file: '+uEsc(er.message||er)+'</span>'}
+  data.nm.o=U.rec?f.name:data.nm.o;uniRefresh();
+};
+
+$('fu_inv').onchange=async e=>{
+  const files=[...e.target.files],info=$('fu_inv_i');U.groups=[];
+  if(!files.length){info.textContent='';$('u_grp').textContent='Muncul setelah invoice diunggah.';uniRefresh();return}
+  info.textContent='Membaca…';
+  try{
+    for(const f of files){
+      const wb=await uLoad(await f.arrayBuffer());
+      for(const ws of wb.worksheets){
+        const h=uHead(ws),c={po:h['customer pono'],mc:h['materialcode'],gn:h['goodscode'],q:h['qty'],od:h['odid']};
+        if(!c.po||!c.mc||!c.q)continue;
+        const g=new Map();
+        ws.eachRow((row,r)=>{if(r===1)return;
+          const po=uVal(row.getCell(c.po)),mc=uVal(row.getCell(c.mc)),q=uNum(uVal(row.getCell(c.q)));
+          if(po==null||mc==null||isNaN(q))return;
+          const od=c.od?String(uVal(row.getCell(c.od))||'-'):'-';
+          if(!g.has(od))g.set(od,new Map());
+          const key=uNorm(po)+'|'+uNorm(mc),m=g.get(od),gnv=c.gn?String(uVal(row.getCell(c.gn))||''):'';
+          if(m.has(key))m.get(key).qty+=q;else m.set(key,{po:String(po).trim(),mc:String(mc).trim(),gn:gnv,qty:q,key})});
+        g.forEach((m,od)=>U.groups.push({id:U.groups.length,label:f.name+' · '+ws.name+' · '+od,od,items:[...m.values()]}));
+      }
+    }
+    if(!U.groups.length)throw new Error('Tidak ada kolom customer PONO / MaterialCODE / qty di file invoice.');
+  }catch(er){U.groups=[];$('u_grp').textContent='Muncul setelah invoice diunggah.';info.innerHTML='<span class="err">'+uEsc(er.message||er)+'</span>';uniRefresh();return}
+  info.innerHTML='<span class="ok">✓ '+U.groups.length+' kelompok ODID</span> ('+uFmt(U.groups.reduce((a,g)=>a+g.items.length,0))+' item)';
+  $('u_grp').innerHTML=U.groups.map(g=>'<div style="border-top:1px solid var(--line,#e3e6ee);padding:8px 0"><div>'+uEsc(g.label)+'</div><div class="f">'+g.items.length+' item · total qty '+uFmt(g.items.reduce((a,b)=>a+b.qty,0))+'</div>'+
+    '<input type="text" data-ug="'+g.id+'" data-k="wb" placeholder="No. waybill, mis. PA2611250001" style="width:100%;margin-top:6px;box-sizing:border-box">'+
+    '<input type="date" data-ug="'+g.id+'" data-k="dt" value="'+uToday()+'" style="width:100%;margin-top:6px;box-sizing:border-box"></div>').join('');
+  document.querySelectorAll('#u_grp input').forEach(i=>i.oninput=uniRefresh);
+  uniRefresh();
+};
+
+function uniRefresh(){
+  const out=$('outu');
+  if(!U.rec||!U.groups.length){out.innerHTML='';U.plan=null;$('dlu').disabled=true;prog();return}
+  const ready=uReady(),touched=new Map(),actions=[],log=[];let applied=0;
+  for(const g of U.groups){
+    const inp=uGet(g);
+    for(const it of g.items){
+      const b={od:g.od,po:it.po,mc:it.mc,qty:it.qty},row=U.rec.rows.get(it.key);
+      if(!row){log.push({...b,st:'err',note:'Tidak ada di outstanding record'});continue}
+      const before=row.q-row.shipped;
+      if(!ready){log.push({...b,st:'skip',before,note:'Lengkapi waybill dan tanggal'});continue}
+      if(uNorm(it.gn)!==row.gn){log.push({...b,st:'err',before,note:'Nama barang berbeda dengan outstanding record'});continue}
+      const t=touched.get(it.key)||{shipped:row.shipped,free:[...row.free],wbs:new Set(row.wbs)},wk=uNorm(inp.wb),left=row.q-t.shipped;
+      if(t.wbs.has(wk)){log.push({...b,st:'skip',before:left,after:left,note:'Waybill ini sudah tercatat, dilewati'});continue}
+      if(it.qty>left){log.push({...b,st:'err',before:left,note:'Qty melebihi sisa PO ('+uFmt(left)+')'});continue}
+      if(!t.free.length){log.push({...b,st:'err',before:left,note:'Slot pengiriman penuh'});continue}
+      const slot=t.free.shift();t.shipped+=it.qty;t.wbs.add(wk);touched.set(it.key,t);
+      actions.push({r:row.r,slot,wb:inp.wb,dt:inp.dt,qty:it.qty,q:row.q,t});applied+=it.qty;
+      log.push({...b,st:'ok',before:left,after:left-it.qty,note:'Slot '+(slot+1)+' · waybill '+inp.wb});
+    }
+  }
+  U.plan={actions,log,applied};
+  const n=k=>log.filter(o=>o.st===k).length,bad=n('err');
+  const lab={ok:['OK','ok'],skip:['Lewati','warn'],err:['Error','err']},ord={err:0,skip:1,ok:2};
+  const rows=[...log].sort((a,b)=>ord[a.st]-ord[b.st]);
+  out.innerHTML='<div class="card"><b>'+uFmt(applied)+' pcs</b> akan dikurangi di '+uFmt(touched.size)+' baris dari '+uFmt(log.length)+' baris invoice. Outstanding '+uFmt(U.rec.total)+' → <b>'+uFmt(U.rec.total-applied)+'</b>.<br>'+
+    '<span class="ok">OK: '+n('ok')+'</span> · <span class="warn">Dilewati: '+n('skip')+'</span> · <span class="'+(bad?'err':'ok')+'">Error: '+bad+'</span>'+(bad?'<br><span class="warn">Baris error tidak diubah sama sekali di file hasil.</span>':'')+'</div>'+
+    '<div class="card sc scl"><table><tr><th>Status</th><th>ODID</th><th>PO NO</th><th>Material code</th><th class="n">Qty invoice</th><th class="n">Sisa sebelum</th><th class="n">Sisa sesudah</th><th>Keterangan</th></tr>'+
+    rows.slice(0,600).map(o=>'<tr><td><span class="'+lab[o.st][1]+'">'+lab[o.st][0]+'</span></td><td>'+uEsc(o.od)+'</td><td>'+uEsc(o.po)+'</td><td>'+uEsc(o.mc)+'</td><td class="n">'+uFmt(o.qty)+'</td><td class="n">'+(o.before==null?'':uFmt(o.before))+'</td><td class="n">'+(o.after==null?'':uFmt(o.after))+'</td><td'+(o.st==='err'?' class="bad"':'')+'>'+uEsc(o.note)+'</td></tr>').join('')+
+    (rows.length>600?'<tr><td colspan="8">Menampilkan 600 dari '+rows.length+' baris (error dan dilewati paling atas).</td></tr>':'')+'</table></div>';
+  $('dlu').disabled=!(ready&&actions.length);prog();
+}
+
+$('dlu').onclick=async()=>{
+  const P=U.plan;if(!P||!P.actions.length)return;
+  const btn=$('dlu'),msg=$('msgu');btn.disabled=true;msg.textContent='Menyiapkan file, mohon tunggu…';
+  try{
+    const wb=await uLoad(U.rec.buf),ws=wb.getWorksheet(U.rec.sheet),byRow=new Map();
+    P.actions.forEach(a=>byRow.set(a.r,{t:a.t,q:a.q}));
+    for(const a of P.actions){
+      const s=U.rec.slots[a.slot];
+      ws.getCell(a.r,s.w).value=a.wb;
+      const dc=ws.getCell(a.r,s.d),[y,m,d]=a.dt.split('-').map(Number);
+      dc.value=new Date(Date.UTC(y,m-1,d));
+      if(!dc.numFmt||dc.numFmt==='General')dc.numFmt='dd/mm/yyyy';
+      ws.getCell(a.r,s.q).value=a.qty;
+    }
+    if(U.rec.cols.out)byRow.forEach((v,r)=>{
+      const f=uColL(U.rec.cols.qty)+r+U.rec.slots.map(s=>'-'+uColL(s.q)+r).join('');
+      ws.getCell(r,U.rec.cols.out).value={formula:f,result:v.q-v.t.shipped}});
+    wb.calcProperties={fullCalcOnLoad:true};
+    const buf=await wb.xlsx.writeBuffer();
+    saveBytes(new Uint8Array(buf),U.rec.name.replace(/\.xlsx$/i,'')+'_updated','xlsx','msgu');
+  }catch(er){msg.innerHTML='<span class="err">Gagal: '+uEsc((er&&er.message)||er)+'</span>'}
+  btn.disabled=false;
+};
+
 $('tab_sd').onclick=()=>setTab('sd');$('tab_red').onclick=()=>setTab('red');
 new MutationObserver(()=>{$('ava').textContent=($('who').textContent.trim()[0]||'?').toUpperCase()}).observe($('who'),{childList:true,characterData:true,subtree:true});
 const d=new Date();
