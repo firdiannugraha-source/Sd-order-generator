@@ -706,6 +706,11 @@ main.stage>.navfoot .wm{margin:0;padding:0;border:0;justify-content:flex-end;tex
 </div>
 <div id="outu"></div>
 </div>
+<div class="card" id="rep_card" style="margin-top:18px"><h2>Laporan Invoice</h2>
+<div class="f">Dibuat dari invoice yang tersimpan di Google Sheet (sheet FICI, SCI, UNI), berurutan tanggal lalu nomor invoice.</div>
+<div class="actions" style="align-items:center;margin-top:10px"><select id="rep_co" aria-label="Perusahaan"><option value="all">Semua perusahaan</option><option value="fici">FICI</option><option value="sci">SCI</option><option value="uni">UNI</option></select><input type="month" id="rep_mo" aria-label="Bulan (kosong = semua bulan)" title="Kosong = semua bulan"></div>
+<div class="actions"><button id="rep_sto" type="button">Unduh STO Report</button><button id="rep_mon" type="button" class="g">Unduh Laporan Bulanan</button></div>
+<div id="rep_msg" class="f"></div></div>
 </div>
 </section>
 
@@ -735,7 +740,19 @@ main.stage>.navfoot .wm{margin:0;padding:0;border:0;justify-content:flex-end;tex
 const $=id=>document.getElementById(id);
 const uTick=()=>new Promise(r=>setTimeout(r,40));
 const XOPT={type:'array',cellDates:false,cellStyles:false,cellFormula:false,cellHTML:false,cellNF:false,cellText:false};
-let outData=null,outWB=null,fileName='SD_ORDER.xlsx',data={o:null,s:null,inv:[],nm:{o:'',s:''},fmt:'shengda'};let tab='sd';var U={rec:null,groups:[],plan:null};
+let outData=null,outWB=null,fileName='SD_ORDER.xlsx',data={o:null,s:null,inv:[],nm:{o:'',s:''},fmt:'shengda'};
+const isRec=()=>data.fmt==='fici'||data.fmt==='uni';
+// Tanggal apa pun (serial Excel, Date, yyyy/mm/dd, dd/mm/yyyy) dijadikan yyyy-mm-dd supaya bisa dibandingkan
+function dkey(v){
+  if(v==null||v==='')return '';
+  const f=(y,m,d)=>y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  if(v instanceof Date)return f(v.getUTCFullYear(),v.getUTCMonth()+1,v.getUTCDate());
+  if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*86400000));return f(d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate())}
+  const t=String(v).trim();let m=t.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);if(m)return f(+m[1],+m[2],+m[3]);
+  m=t.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);if(m)return f(+m[3],+m[2],+m[1]);return t}
+// Nama barang: huruf/angka saja; kosong dianggap tidak dicek, selain itu harus sama atau salah satunya memuat yang lain
+function nameOK(a,b){const n=x=>String(x==null?'':x).toUpperCase().replace(/[^A-Z0-9.]/g,'');const x=n(a),y=n(b);if(!x||!y)return true;return x===y||x.includes(y)||y.includes(x)}
+let tab='sd';var U={rec:null,groups:[],plan:null};
 // ODID: awalan SD + tahun + bulan (SD2611, SD2612, SD2701, ...) otomatis dari tanggal hari ini
 const odPrefix=(d=new Date())=>'SD'+String(d.getFullYear()).slice(-2)+String(d.getMonth()+1).padStart(2,'0');
 $('od').value=odPrefix();
@@ -751,16 +768,82 @@ function trimRef(ws){
   }
   ws['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:mr,c:mc}});
 }
-// Baca semua sheet (invoice sering punya sheet SUMMARY / PL di samping sheet invoice)
-function readFileAll(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{try{
-  const wb=XLSX.read(new Uint8Array(r.result),XOPT);
-  res(wb.SheetNames.map(n=>{const ws=wb.Sheets[n];trimRef(ws);return {name:n,rows:XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null})}}))}catch(e){rej(e)}};
-  r.onerror=()=>rej(new Error('File tidak bisa dibaca'));r.readAsArrayBuffer(f)})}
-function readFile(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{try{
-  const wb=XLSX.read(new Uint8Array(r.result),Object.assign({sheets:0},XOPT));
-  const ws=wb.Sheets[wb.SheetNames[0]];trimRef(ws);
-  res(XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null}))}catch(e){rej(e)}};
-  r.onerror=()=>rej(r.error);r.readAsArrayBuffer(f)})}
+// ===== Pembaca Excel hemat memori (jalan di Web Worker; cadangan di halaman utama) =====
+// Hanya sel yang benar-benar berisi yang diambil. Sel berisi spasi dan sel jauh di luar data diabaikan,
+// sehingga file yang "areanya" membengkak tidak lagi menghabiskan memori.
+function xlColIdx(s){let n=0;for(let i=0;i<s.length;i++)n=n*26+s.charCodeAt(i)-64;return n-1}
+function xlRows(ws,cap,minCols){
+  const re=/^([A-Z]+)(\d+)$/,cells=[];let hdr=-1;
+  for(const k in ws){
+    if(k.charCodeAt(0)===33)continue;
+    const c=ws[k];if(!c||c.v==null||c.t==='e')continue;
+    const v=c.v;if(typeof v==='string'&&v.trim()==='')continue;
+    const m=re.exec(k);if(!m)continue;
+    const ci=xlColIdx(m[1]),ri=+m[2]-1;
+    if(ri===0&&ci>hdr)hdr=ci;
+    cells.push(ri,ci,v);
+  }
+  const lim=cap==='hdr'?Math.max(hdr,(minCols||1)-1):Infinity,mc=new Map();let last=-1;
+  for(let i=0;i<cells.length;i+=3){const r=cells[i],c=cells[i+1];if(c>lim)continue;if(r>last)last=r;if(!(mc.get(r)>=c))mc.set(r,c)}
+  const rows=new Array(last+1);
+  for(let r=0;r<=last;r++){const n=mc.has(r)?mc.get(r)+1:0;rows[r]=n>0?new Array(n).fill(null):[]}
+  for(let i=0;i<cells.length;i+=3){const r=cells[i],c=cells[i+1];if(c>lim)continue;rows[r][c]=cells[i+2]}
+  return rows;
+}
+function xlProcess(X,u8,d,tick){
+  const opt={type:'array',cellDates:false,cellStyles:false,cellFormula:false,cellHTML:false,cellNF:false,cellText:false,bookVBA:false,bookDeps:false};
+  const norm=x=>String(x==null?'':x).replace(/\s+/g,' ').trim().toLowerCase();
+  if(d.mode==='all'){const wb=X.read(u8,opt);return wb.SheetNames.map(n=>({name:n,rows:xlRows(wb.Sheets[n],d.cap,d.minCols)}))}
+  const names=X.read(u8,{type:'array',bookSheets:true}).SheetNames;
+  if(d.mode==='first'){const wb=X.read(u8,Object.assign({sheets:0},opt));return [{name:names[0],rows:xlRows(wb.Sheets[names[0]],d.cap,d.minCols)}]}
+  for(let i=0;i<names.length;i++){
+    if(tick)tick('Memeriksa sheet '+(i+1)+' dari '+names.length+'…');
+    const ws=X.read(u8,Object.assign({sheets:i},opt)).Sheets[names[i]];if(!ws)continue;
+    const hs=new Set();
+    for(const k in ws){if(k.charCodeAt(0)===33||!/^[A-Z]+1$/.test(k))continue;const c=ws[k];if(c&&c.v!=null)hs.add(norm(c.v))}
+    if(d.need.every(x=>hs.has(x)))return [{name:names[i],rows:xlRows(ws,d.cap,d.minCols)}];
+  }
+  return [];
+}
+
+const XL_URL='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+const XL_WORKER=()=>'importScripts('+JSON.stringify(XL_URL)+');'+[xlColIdx,xlRows,xlProcess].map(f=>f.toString()).join('\n')+
+  ';self.postMessage({ready:1});self.onmessage=function(e){var d=e.data;try{var r=xlProcess(XLSX,new Uint8Array(d.buf),d,function(t){self.postMessage({tick:t})});self.postMessage({ok:1,sheets:r})}catch(er){self.postMessage({err:String((er&&er.message)||er)})}}';
+let _xw=null;
+function xlWorker(){
+  if(_xw)return _xw;
+  _xw=new Promise(res=>{
+    try{
+      const w=new Worker(URL.createObjectURL(new Blob([XL_WORKER()],{type:'text/javascript'})));
+      const t=setTimeout(()=>{try{w.terminate()}catch(e){}res(null)},10000);
+      w.onmessage=e=>{if(e.data&&e.data.ready){clearTimeout(t);w.onmessage=null;res(w)}};
+      w.onerror=()=>{clearTimeout(t);res(null)};
+    }catch(e){res(null)}
+  });
+  return _xw;
+}
+// Baca file Excel tanpa membekukan halaman. mode: 'first' | 'all' | 'find' (cari sheet dengan header yang dibutuhkan)
+async function xlRead(f,d,onTick){
+  d=Object.assign({mode:'first',cap:null,minCols:1},d||{});
+  const buf=d.buf||await f.arrayBuffer(),w=await xlWorker();
+  if(!w){await uTick();return xlProcess(XLSX,new Uint8Array(buf),d,onTick)}
+  return new Promise((res,rej)=>{
+    const tm=setTimeout(()=>{try{w.terminate()}catch(e){}_xw=null;rej(new Error('Pembacaan file terlalu lama atau file terlalu besar. Simpan ulang file dengan hanya sheet yang dibutuhkan, lalu coba lagi.'))},180000);
+    const end=fn=>x=>{clearTimeout(tm);fn(x)};
+    w.onmessage=e=>{const m=e.data||{};if(m.tick){if(onTick)onTick(m.tick)}else if(m.ok)end(res)(m.sheets);else if(m.err)end(rej)(new Error(m.err))};
+    w.onerror=ev=>{clearTimeout(tm);_xw=null;rej(new Error('Gagal membaca file'+(ev&&ev.message?': '+ev.message:'')))};
+    const c=buf.slice(0);w.postMessage(Object.assign({},d,{buf:c}),[c]);
+  });
+}
+// Penghitung waktu supaya terlihat tidak macet
+function xlTicker(els){
+  const t0=Date.now();let msg='Membaca…';
+  const show=()=>{const s=Math.round((Date.now()-t0)/1000);els.forEach(x=>{x.textContent=msg+(s>=2?' ('+s+' dtk)':'')})};
+  const tm=setInterval(show,500);show();
+  return {set:m=>{msg=m},stop:()=>clearInterval(tm)};
+}
+function readFileAll(f){return xlRead(f,{mode:'all'})}
+async function readFile(f,d,onTick){const r=await xlRead(f,Object.assign({mode:'first'},d||{}),onTick);return r[0]?r[0].rows:[]}
 
 // Format file Outstanding: (a) Shengda (kolom F=qty pesan, G=PO, J=material, K=nama item, L=order ID, M=qty terima)
 // atau (b) FICI Outstanding Record (kolom PO NO, MATERIAL CODE, Goodsname, QTY, A=order ID, pasangan Shipping Date + QTY Shipment, TOTAL = sisa).
@@ -772,7 +855,10 @@ function slashDate(v){
 function normOutstanding(raw){
   const h=(raw[0]||[]).map(x=>String(x==null?'':x).toUpperCase().replace(/\s+/g,' ').trim());
   const iPO=h.indexOf('PO NO'),iMat=h.indexOf('MATERIAL CODE'),iTot=h.indexOf('TOTAL'),iName=h.findIndex(x=>x.startsWith('GOODSNAME'));
-  if(iPO<0||iMat<0||iTot<0||iName<0)return {rows:raw,fmt:'shengda'};
+  // Template UNI: tidak ada kolom TOTAL, sisa ada di kolom OUTSTANDING dan status di Clasification
+  const iOut=h.indexOf('OUTSTANDING'),uni=iTot<0&&iOut>=0&&h.some(x=>x.includes('WAYBILL'));
+  const iCls=h.findIndex(x=>x.startsWith('CLASIFICATION')||x.startsWith('CLASSIFICATION'));
+  if(iPO<0||iMat<0||(iTot<0&&!uni)||iName<0)return {rows:raw,fmt:'shengda'};
   const iDate=h.indexOf('DATE'),iQty=h.indexOf('QTY'),iGrp=h.indexOf('A')>=0?h.indexOf('A'):7;
   const qc=[];h.forEach((x,i)=>{if(x.includes('SHIPMENT'))qc.push(i)});
   const out=[['Tanggal Order',null,null,null,null,'Qty Pesan','No. PO',null,null,'Material','Nama Item','Order ID','Qty Terkirim']];
@@ -784,23 +870,26 @@ function normOutstanding(raw){
     qc.forEach(c=>{const v=r[c];if(typeof v==='number'&&v>0){sum+=v;const dv=r[c-1];
       const isDate=h[c-1]&&h[c-1].includes('SHIPPING DATE')||(typeof dv==='number'&&dv>=44000&&dv<=50000&&!qc.includes(c-1))||(typeof dv==='string'&&/^\d{4}\/\d{2}\/\d{2}$/.test(dv.trim()));
       ships.push({d:isDate&&dv!=null?fmtTgl(dv):'',q:v})}});
-    const rem=typeof r[iTot]==='number'?r[iTot]:q-sum;
-    const row=[slashDate(r[iDate]),null,null,null,null,q,r[iPO],null,null,r[iMat],r[iName],r[iGrp]==null?'':String(r[iGrp]),q-rem,ships];
+    const cx=uni&&iCls>=0&&/CANCEL/i.test(String(r[iCls]==null?'':r[iCls]));
+    // UNI: sisa dihitung ulang = QTY - semua QTY Shipment (rumus kolom OUTSTANDING di file tidak seragam), baris CANCEL = 0
+    const rem=cx?0:(uni?q-sum:(typeof r[iTot]==='number'?r[iTot]:q-sum));
+    const row=[slashDate(r[iDate]),null,null,null,null,q,r[iPO],null,null,r[iMat],r[iName],uni?'UNI':(r[iGrp]==null?'':String(r[iGrp])),q-rem,ships];
     out.push(row);
   }
-  return {rows:out,fmt:'fici'};
+  return {rows:out,fmt:uni?'uni':'fici'};
 }
 async function onPick(key,inp,info){
   const f=inp.files[0];if(!f)return;
   info.textContent='Membaca…';
   if(key==='o')[$('fo_i'),$('fo2_i')].forEach(x=>x.textContent='Membaca…');
   await uTick();
-  let html;
+  let html;const tk=xlTicker(key==='o'?[$('fo_i'),$('fo2_i')]:[info]);
   try{
-    let raw=await readFile(f),extra='';
-    if(key==='o'){const n=normOutstanding(raw);raw=n.rows;data.fmt=n.fmt;extra=n.fmt==='fici'?', format FICI Outstanding Record':', format Shengda'}
+    let raw=await readFile(f,key==='o'?{cap:'hdr',minCols:14}:{},m=>tk.set(m)),extra='';
+    if(key==='o'){const n=normOutstanding(raw);raw=n.rows;data.fmt=n.fmt;extra=n.fmt==='uni'?', format UNI Outstanding Record':n.fmt==='fici'?', format FICI Outstanding Record':', format Shengda'}
     data[key]=raw;html='<span class="ok">✓ '+f.name+'</span> ('+(data[key].length-1).toLocaleString('id-ID')+' baris'+extra+')'}
   catch(e){data[key]=null;html='<span class="err">Gagal membaca file: '+e.message+'</span>'}
+  tk.stop();
   (key==='o'?[$('fo_i'),$('fo2_i')]:[info]).forEach(x=>x.innerHTML=html);
   data.nm[key]=data[key]?f.name:'';
   $('go').disabled=!(data.o&&data.s);$('dlo').disabled=!(data.o&&data.inv.length);
@@ -832,11 +921,11 @@ function parseInvoiceBook(sheets,fname){
   throw new Error('tidak ada sheet invoice dengan kolom Material Number, NO.PO, dan Qty');
 }
 function parseInvoice(rows,fname){
-  let hr=-1,mc=-1,pc=-1,qc=-1;
+  let hr=-1,mc=-1,pc=-1,qc=-1,ac=-1,pr=-1;
   for(let i=0;i<Math.min(rows.length,40)&&hr<0;i++){
     const lc=(rows[i]||[]).map(c=>String(c==null?'':c).toLowerCase().replace(/\s+/g,''));
     const a=lc.findIndex(x=>x.includes('materialnumber')),b=lc.findIndex(x=>x.includes('no.po')),c=lc.findIndex(x=>x.startsWith('qty'));
-    if(a>=0&&b>=0&&c>=0){hr=i;mc=a;pc=b;qc=c}
+    if(a>=0&&b>=0&&c>=0){hr=i;mc=a;pc=b;qc=c;ac=lc.findIndex(x=>x.includes('amount'));pr=lc.findIndex(x=>x.includes('unitprice')||x==='price'||x.startsWith('price'))}
   }
   if(hr<0)throw new Error('header Material Number / NO.PO / Qty tidak ditemukan');
   let tgl='',no='';
@@ -857,7 +946,8 @@ function parseInvoice(rows,fname){
     if(r.some(c=>/sub\s*total/i.test(String(c==null?'':c))))break;
     const po=String(r[pc]==null?'':r[pc]).trim(),mat=String(r[mc]==null?'':r[mc]).trim(),q=num(r[qc]);
     if(!po||!mat||q<=0)continue;
-    lines.push({po,mat,q,item:String(r[pc+1]==null?'':r[pc+1]).trim()});
+    const am=ac>=0?num(r[ac]):0,amt=am>0?am:(pr>=0?num(r[pr])*q:0);
+    lines.push({po,mat,q,amt,item:String(r[pc+1]==null?'':r[pc+1]).trim()});
   }
   if(!lines.length)throw new Error('tidak ada baris barang');
   return {name:fname,no:no||fname,tgl,lines};
@@ -901,7 +991,12 @@ function reduce(force){
     const idxs=byPo[L.po]||[];let how='';
     let cand=idxs.filter(i=>String(data.o[i][9]==null?'':data.o[i][9]).trim().toUpperCase()===L.mat.toUpperCase());
     if(!cand.length){cand=idxs.filter(i=>baseMat(data.o[i][9])===baseMat(L.mat));if(cand.length)how='Material dicocokkan tanpa akhiran -N ('+String(data.o[cand[0]][9]).trim()+')'}
-    if(data.fmt==='fici'&&cand.length){
+    if(data.fmt==='uni'&&cand.length){
+      // UNI: nama barang invoice harus sama dengan Goodsname di Outstanding
+      const c2=cand.filter(i=>nameOK(L.item,data.o[i][10]));
+      if(!c2.length){log.push({inv:inv.no,tgl:inv.tgl,po:L.po,mat:L.mat,item:L.item,q:L.q,row:'-',before:'-',after:'-',bad:true,note:'Nama barang invoice berbeda dengan Goodsname Outstanding ('+String(data.o[cand[0]][10]==null?'':data.o[cand[0]][10]).trim()+'), tidak dikurangi'});continue}
+      cand=c2}
+    if(isRec()&&cand.length){
       // FICI adalah catatan terbaru: pengiriman invoice ini kemungkinan sudah tercatat di sana, jangan dikurangi dua kali
       const ships=cand.map(i=>data.o[i][13]||[]);
       const sameDay=inv.tgl?ships.map(sl=>sl.filter(x=>x.d===inv.tgl).reduce((a,x)=>a+x.q,0)):ships.map(()=>0);
@@ -939,7 +1034,7 @@ function totBlock(total,want){
 }
 function buildOutstanding(){
   const {red,log}=reduce(true);
-  const fici=data.fmt==='fici';
+  const fici=isRec();
   const cols=fici?[0,6,9,10,5,11,12]:null;
   const base=fici?['Tanggal Order','No. PO','Material','Nama Item','Qty Pesan','Order ID','Qty Terkirim (sebelum invoice)']:(()=>{const h=(data.o[0]||[]).slice(0,14);while(h.length<14)h.push(null);return h})();
   // Setiap invoice yang mengurangi Outstanding menambah sepasang kolom (Tanggal Pengiriman + Qty Invoice), diletakkan sebelum Sisa Qty Outstanding
@@ -960,13 +1055,13 @@ function buildOutstanding(){
   const s1=XLSX.utils.aoa_to_sheet(aoa);s1['!cols']=[...(fici?[12,16,16,46,10,16,16]:[12,22,14,14,8,10,16,8,12,16,36,16,10,10]),...invs.flatMap(()=>[20,12]),22].map(w=>({wch:w}));
   const s2=XLSX.utils.aoa_to_sheet(bukti);s2['!cols']=[26,18,16,16,44,12,14,12,12,50].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,s1,'Outstanding Terbaru');XLSX.utils.book_append_sheet(wb,s2,'Pengurangan Invoice');
-  return {wb,log,red,total};
+  return {wb,log,red,total,invs};
 }
 $('dlo').onclick=()=>{
   try{
     const r=buildOutstanding();
     const pot=r.log.filter(l=>!l.bad&&!l.skip).reduce((a,l)=>a+l.q,0),bad=r.log.filter(l=>l.bad),skp=r.log.filter(l=>l.skip),sfx=r.log.filter(l=>/^Material dicocokkan/.test(l.note||''));
-    const want=Number($('tot_f').value),dl2=()=>saveWB(r.wb,'OUTSTANDING_TERBARU','xlsx','xlsx','msg2');
+    const want=Number($('tot_f').value),dl2=()=>invGuard(data.fmt==='uni'?'uni':'fici',r.invs.map(v=>({no:v.no,tgl:v.tgl,lines:v.lines})),async()=>saveWB(r.wb,'OUTSTANDING_TERBARU','xlsx','xlsx','msg2'),'msg2');
     if(totOK(r.total,want))dl2();
     else{$('msg2').innerHTML=totBlock(r.total,want)+'<button id="force2" type="button" class="g">Tetap unduh</button>';$('force2').onclick=dl2}
     $('out2').innerHTML='<div class="card"><b>'+r.red.size+' baris Outstanding</b> dikurangi, total <b>'+pot.toLocaleString('id-ID')+' pcs</b> dari '+data.inv.length+' invoice.<br>'+
@@ -978,11 +1073,12 @@ $('dlo').onclick=()=>{
 
 function build(){
   // Outstanding: sisa = Qty pesan (F) - Qty terima (M). Urutan file (atas ke bawah) = urutan pemakaian PO.
+  const uni=data.fmt==='uni';
   const pool={},poolAny={};const {red,log:invLog}=reduce();
   for(let i=1;i<data.o.length;i++){
     const r=data.o[i];if(!r)continue;
     const rem=num(r[5])-num(r[12])-((red.get(i)||{}).qty||0);
-    const g=String(r[11]==null?'':r[11]).trim().toUpperCase().slice(0,3);
+    const g=uni?'*':String(r[11]==null?'':r[11]).trim().toUpperCase().slice(0,3);
     if(rem<=0||!g)continue;
     const nm=String(r[10]==null?'':r[10]);const t=nm.toUpperCase().match(TOK);if(!t)continue;
     const p={idx:i,po:r[6],date:r[0],name:nm,mat:String(r[9]==null?'':r[9]),rem,rem0:rem,used:0};
@@ -1009,7 +1105,7 @@ function build(){
       if(!c)continue;
       const q=num(row[t.qc]);
       if(q<=0){notes.push([t.label,c,'-','-','Qty READY kosong, dilewati']);continue}
-      const list=(pool[t.grp]&&pool[t.grp][c])||[];
+      const pg=uni?'*':t.grp;const list=(pool[pg]&&pool[pg][c])||[];
       const via='';
       let need=q;const rows=[];
       for(const p of list){
@@ -1042,7 +1138,7 @@ function build(){
     prevTi=ti;
     for(const {p,take} of m.values()){
       chk.push({ri:aoa.length,p,take,ti});
-      aoa.push(['FICI','FICI',p.po,null,p.po,null,null,p.name,null,null,null,null,null,take,'PCS',p.date,p.mat,od]);n++;tot+=take;
+      aoa.push([uni?'UNI':'FICI',uni?'UNI':'FICI',p.po,null,p.po,null,null,p.name,null,null,null,null,null,take,'PCS',p.date,p.mat,od]);n++;tot+=take;
     }
   }
   // Cek silang: tiap baris SD dibandingkan lagi dengan baris Outstanding asalnya
@@ -1085,7 +1181,7 @@ $('go').onclick=()=>{
   let r;try{r=build()}catch(e){$('msg').innerHTML='<span class="err">Gagal memproses: '+e.message+'</span>';return}
   if(!r.tables.length){$('msg').innerHTML='<span class="err">Tabel tidak ditemukan di Shipping Plan. Pastikan baris 2 berisi header “Goods Name & Specification”.</span>';return}
   if(r.od===odPrefix())$('msg').innerHTML='<span class="warn">ODID baru berisi awalan '+r.od+', belum ada angka di belakangnya.</span>';
-  outWB=r.wb;outData={aoa:r.aoa,cek:r.cek,rinci:r.rinci};fileName='SD_ORDER_FIC_PA'+r.od.replace(/^SD/i,'');prog();logEv('buat_sd_order',r.n);$('dl').disabled=false;$('dl2').disabled=false;
+  outWB=r.wb;outData={aoa:r.aoa,cek:r.cek,rinci:r.rinci};fileName=(data.fmt==='uni'?'SD_ORDER_UNI_PA':'SD_ORDER_FIC_PA')+r.od.replace(/^SD/i,'');prog();logEv('buat_sd_order',r.n);$('dl').disabled=false;$('dl2').disabled=false;
   const short=r.notes.filter(x=>!/kosong/.test(x[4])),empty=r.notes.filter(x=>/kosong/.test(x[4]));
   let h='<div class="card"><b>'+r.blocks.length+' request</b> diproses, <b>'+r.n+' baris</b> SD, total <b>'+r.tot.toLocaleString('id-ID')+' pcs</b>.<br>'+
    (short.length?'<span class="warn">'+short.length+' request belum terpenuhi penuh</span>':'<span class="ok">Semua request terpenuhi penuh</span>')+
@@ -1188,8 +1284,8 @@ function saveBytes(buf,fname,ext,mid){
   $(mid).innerHTML='<span class="ok">File diunduh: '+fname+'.'+ext+'</span>';
 }
 function saveWB(wbk,fname,ext,type,mid){mid=mid||'msg';
-  try{saveBytes(XLSX.write(wbk,{bookType:type,type:'array'}),fname,ext,mid)}
-  catch(e){$(mid).innerHTML='<span class="err">Gagal menyimpan: '+((e&&e.message)||e)+'</span>'}
+  try{saveBytes(XLSX.write(wbk,{bookType:type,type:'array'}),fname,ext,mid);return true}
+  catch(e){$(mid).innerHTML='<span class="err">Gagal menyimpan: '+((e&&e.message)||e)+'</span>';return false}
 }
 $('dl').onclick=()=>save('xlsx','xlsx');
 $('dl2').onclick=()=>save('xls','biff8');
@@ -1262,37 +1358,44 @@ $('m_fici').onclick=()=>setMode('fici');$('m_sci').onclick=()=>setMode('sci');$(
 function uniState(){return [!!U.rec,U.groups.length>0,uReady(),hasNum('tot_u')]}
 function uniMarks(){[['st_u1',0,'1'],['st_u2',1,'2'],['st_u3',2,'3'],['st_utot',3,'4']].forEach(([id,k,no])=>{const el=$(id),v=uniState()[k];el.classList.toggle('done',v);el.querySelector('.no').textContent=v?'\u2713':no})}
 
+function uHeadA(row){const m={};(row||[]).forEach((v,i)=>{const t=uNorm(v);if(t&&!(t in m))m[t]=i+1});return m}
 $('fu_rec').onchange=async e=>{
   const f=e.target.files[0],info=$('fu_rec_i');U.rec=null;
   if(!f){info.textContent='';uniRefresh();return}
-  info.textContent='Membaca…';
+  const tk=xlTicker([info]);
   await uTick();
   try{
-    const buf=await f.arrayBuffer(),wb=await uLoad(buf);
-    const ws=wb.worksheets.find(w=>{const h=uHead(w);return h['po no']&&h['material code']&&h['qty']});
-    if(!ws)throw new Error('Sheet dengan kolom PO NO, MATERIAL CODE, QTY tidak ditemukan.');
-    const h=uHead(ws),cols={po:h['po no'],mc:h['material code'],gn:h['goodsname'],qty:h['qty'],out:h['outstanding']};
-    const slots=[];ws.getRow(1).eachCell({includeEmpty:false},(c,i)=>{if(uNorm(uVal(c)).includes('waybill'))slots.push({w:i,d:i+1,q:i+2})});
+    const buf=await f.arrayBuffer();
+    const found=await xlRead(f,{mode:'find',need:['po no','material code','qty'],cap:'hdr',minCols:1,buf},m=>tk.set(m));
+    if(!found.length)throw new Error('Sheet dengan kolom PO NO, MATERIAL CODE, QTY tidak ditemukan.');
+    const sh={name:found[0].name,rows:found[0].rows,hdr:found[0].rows[0]||[]};sh.h=uHeadA(sh.hdr);
+    const h=sh.h,cols={po:h['po no'],mc:h['material code'],gn:h['goodsname'],qty:h['qty'],out:h['outstanding'],dt:h['date'],cl:h['clasification']||h['classification']};
+    const slots=[];sh.hdr.forEach((v,i)=>{if(uNorm(v).includes('waybill'))slots.push({w:i+1,d:i+2,q:i+3})});
     if(!slots.length)throw new Error('Kolom Waybill / Shipping Date / QTY Shipment tidak ditemukan.');
-    const rows=new Map();let total=0;
-    ws.eachRow((row,r)=>{if(r===1)return;
-      const po=uVal(row.getCell(cols.po)),mc=uVal(row.getCell(cols.mc));if(po==null||mc==null)return;
-      const q=uNum(uVal(row.getCell(cols.qty)));if(isNaN(q))return;
+    const arr=sh.rows;
+    const rows=new Map();let total=0,cancel=0;
+    for(let ri=1;ri<arr.length;ri++){
+      const row=arr[ri]||[],po=row[cols.po-1],mc=row[cols.mc-1];
+      if(po==null||mc==null||po===''||mc==='')continue;
+      const q=uNum(row[cols.qty-1]);if(isNaN(q))continue;
       let shipped=0;const free=[],wbs=new Set();
-      slots.forEach((s,k)=>{const sq=uNum(uVal(row.getCell(s.q))),sw=uVal(row.getCell(s.w));
+      slots.forEach((s,k)=>{const sq=uNum(row[s.q-1]),sw=row[s.w-1];
         if(!isNaN(sq)&&sq!==0)shipped+=sq;
         if(sw!=null&&sw!=='')wbs.add(uNorm(sw));
         if((isNaN(sq)||sq===0)&&(sw==null||sw===''))free.push(k)});
-      rows.set(uNorm(po)+'|'+uNorm(mc),{r,q,shipped,free,wbs,gn:uNorm(uVal(row.getCell(cols.gn)))});
-      total+=q-shipped});
-    U.rec={buf,name:f.name,sheet:ws.name,cols,slots,rows,total};
-    info.innerHTML='<span class="ok">✓ '+uEsc(f.name)+'</span> (sheet '+uEsc(ws.name)+', '+uFmt(rows.size)+' baris, total outstanding '+uFmt(total)+')';
-  }catch(er){U.rec=null;info.innerHTML='<span class="err">Gagal membaca file: '+uEsc(er.message||er)+'</span>'}
+      const cx=!!(cols.cl&&/cancel/i.test(String(row[cols.cl-1]==null?'':row[cols.cl-1])));
+      if(cx)cancel++;else total+=q-shipped;
+      rows.set(uNorm(po)+'|'+uNorm(mc),{r:ri+1,q,shipped,free,wbs,gn:cols.gn?uNorm(row[cols.gn-1]):'',date:cols.dt?dkey(row[cols.dt-1]):'',cancel:cx});
+    }
+    U.rec={buf,name:f.name,sheet:sh.name,cols,slots,rows,total};tk.stop();
+    info.innerHTML='<span class="ok">✓ '+uEsc(f.name)+'</span> (sheet '+uEsc(sh.name)+', '+uFmt(rows.size)+' baris, total outstanding '+uFmt(total)+(cancel?', '+uFmt(cancel)+' baris CANCEL tidak dihitung':'')+')';
+  }catch(er){tk.stop();U.rec=null;info.innerHTML='<span class="err">Gagal membaca file: '+uEsc(er.message||er)+'</span>'}
   data.nm.o=U.rec?f.name:data.nm.o;
   try{e.target.value=''}catch(_){}
   try{uniRefresh()}catch(er){console.error(er)}
 };
 
+// File kedua bisa berupa SD Order (customer PONO, MaterialCODE, goodscode, qty, ODID, gettime) atau invoice (Material Number, NO.PO, Qty)
 $('fu_inv').onchange=async e=>{
   const files=[...e.target.files],info=$('fu_inv_i');U.groups=[];
   if(!files.length){info.textContent='';$('u_grp').textContent='Muncul setelah invoice diunggah.';uniRefresh();return}
@@ -1300,27 +1403,35 @@ $('fu_inv').onchange=async e=>{
   await uTick();
   try{
     for(const f of files){
-      const wb=await uLoad(await f.arrayBuffer());
-      for(const ws of wb.worksheets){
-        const h=uHead(ws),c={po:h['customer pono'],mc:h['materialcode'],gn:h['goodscode'],q:h['qty'],od:h['odid']};
+      const sheets=await readFileAll(f);let found=false;
+      for(const sh of sheets){
+        const h=uHeadA(sh.rows[0]),c={po:h['customer pono'],mc:h['materialcode'],gn:h['goodscode'],q:h['qty'],od:h['odid'],pd:h['gettime']||h['po date']||h['tanggal po'],am:h[Object.keys(h).find(k=>k.includes('amount'))],pr:h[Object.keys(h).find(k=>k==='price'||k.includes('unit price')||k.startsWith('price'))]};
         if(!c.po||!c.mc||!c.q)continue;
-        const g=new Map();
-        ws.eachRow((row,r)=>{if(r===1)return;
-          const po=uVal(row.getCell(c.po)),mc=uVal(row.getCell(c.mc)),q=uNum(uVal(row.getCell(c.q)));
-          if(po==null||mc==null||isNaN(q))return;
-          const od=c.od?String(uVal(row.getCell(c.od))||'-'):'-';
+        found=true;const g=new Map();
+        for(let i=1;i<sh.rows.length;i++){
+          const r=sh.rows[i]||[],po=r[c.po-1],mc=r[c.mc-1],q=uNum(r[c.q-1]);
+          if(po==null||mc==null||po===''||mc===''||isNaN(q))continue;
+          const od=c.od&&r[c.od-1]!=null&&r[c.od-1]!==''?String(r[c.od-1]):'-';
           if(!g.has(od))g.set(od,new Map());
-          const key=uNorm(po)+'|'+uNorm(mc),m=g.get(od),gnv=c.gn?String(uVal(row.getCell(c.gn))||''):'';
-          if(m.has(key))m.get(key).qty+=q;else m.set(key,{po:String(po).trim(),mc:String(mc).trim(),gn:gnv,qty:q,key})});
-        g.forEach((m,od)=>U.groups.push({id:U.groups.length,label:f.name+' · '+ws.name+' · '+od,od,items:[...m.values()]}));
+          const key=uNorm(po)+'|'+uNorm(mc),m=g.get(od),gnv=c.gn&&r[c.gn-1]!=null?String(r[c.gn-1]):'',pd=c.pd?dkey(r[c.pd-1]):'';
+          const am=c.am?uNum(r[c.am-1]):NaN,pr=c.pr?uNum(r[c.pr-1]):NaN,amt=am>0?am:(pr>0?pr*q:0);
+          if(m.has(key)){const o=m.get(key);o.qty+=q;o.amt+=amt}else m.set(key,{po:String(po).trim(),mc:String(mc).trim(),gn:gnv,qty:q,amt,key,pd})}
+        g.forEach((m,od)=>U.groups.push({id:U.groups.length,label:f.name+' · '+sh.name+' · '+od,od,items:[...m.values()],wb:'',dt:''}));
+      }
+      if(!found){
+        let inv;try{inv=parseInvoiceBook(sheets,f.name)}catch(er){throw new Error(f.name+': format tidak dikenali (butuh kolom customer PONO / MaterialCODE / qty atau Material Number / NO.PO / Qty)')}
+        const m=new Map();
+        inv.lines.forEach(l=>{const key=uNorm(l.po)+'|'+uNorm(l.mat);if(m.has(key)){const o=m.get(key);o.qty+=l.q;o.amt+=l.amt||0}else m.set(key,{po:l.po,mc:l.mat,gn:l.item,qty:l.q,amt:l.amt||0,key,pd:''})});
+        const mw=String(inv.no).match(/PA\d{10}/i),mt=String(inv.tgl).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        U.groups.push({id:U.groups.length,label:f.name+' · invoice '+inv.no,od:inv.no,items:[...m.values()],wb:mw?mw[0].toUpperCase():'',dt:mt?mt[3]+'-'+mt[2]+'-'+mt[1]:''});
       }
     }
-    if(!U.groups.length)throw new Error('Tidak ada kolom customer PONO / MaterialCODE / qty di file invoice.');
+    if(!U.groups.length)throw new Error('Tidak ada data yang bisa dibaca dari file.');
   }catch(er){U.groups=[];$('u_grp').textContent='Muncul setelah invoice diunggah.';info.innerHTML='<span class="err">'+uEsc(er.message||er)+'</span>';uniRefresh();return}
-  info.innerHTML='<span class="ok">✓ '+U.groups.length+' kelompok ODID</span> ('+uFmt(U.groups.reduce((a,g)=>a+g.items.length,0))+' item)';
+  info.innerHTML='<span class="ok">✓ '+U.groups.length+' kelompok</span> ('+uFmt(U.groups.reduce((a,g)=>a+g.items.length,0))+' item)';
   $('u_grp').innerHTML=U.groups.map(g=>'<div style="border-top:1px solid var(--line,#e3e6ee);padding:8px 0"><div>'+uEsc(g.label)+'</div><div class="f">'+g.items.length+' item · total qty '+uFmt(g.items.reduce((a,b)=>a+b.qty,0))+'</div>'+
-    '<input type="text" data-ug="'+g.id+'" data-k="wb" placeholder="No. waybill, mis. PA2611250001" style="width:100%;margin-top:6px;box-sizing:border-box">'+
-    '<input type="date" data-ug="'+g.id+'" data-k="dt" value="'+uToday()+'" style="width:100%;margin-top:6px;box-sizing:border-box"></div>').join('');
+    '<input type="text" data-ug="'+g.id+'" data-k="wb" value="'+uEsc(g.wb)+'" placeholder="No. waybill, mis. PA2611250001" style="width:100%;margin-top:6px;box-sizing:border-box">'+
+    '<input type="date" data-ug="'+g.id+'" data-k="dt" value="'+(g.dt||uToday())+'" style="width:100%;margin-top:6px;box-sizing:border-box"></div>').join('');
   document.querySelectorAll('#u_grp input').forEach(i=>i.oninput=uniRefresh);
   uniRefresh();
 };
@@ -1335,14 +1446,16 @@ function uniRefresh(){
       const b={od:g.od,po:it.po,mc:it.mc,qty:it.qty},row=U.rec.rows.get(it.key);
       if(!row){log.push({...b,st:'err',note:'Tidak ada di outstanding record'});continue}
       const before=row.q-row.shipped;
+      if(row.cancel){log.push({...b,st:'err',before:0,note:'PO berstatus CANCEL di outstanding record'});continue}
       if(!ready){log.push({...b,st:'skip',before,note:'Lengkapi waybill dan tanggal'});continue}
-      if(uNorm(it.gn)!==row.gn){log.push({...b,st:'err',before,note:'Nama barang berbeda dengan outstanding record'});continue}
+      if(it.pd&&row.date&&it.pd!==row.date){log.push({...b,st:'err',before,note:'Tanggal PO berbeda (file '+it.pd+', record '+row.date+')'});continue}
+      if(!nameOK(it.gn,row.gn)){log.push({...b,st:'err',before,note:'Nama barang berbeda dengan Goodsname outstanding record'});continue}
       const t=touched.get(it.key)||{shipped:row.shipped,free:[...row.free],wbs:new Set(row.wbs)},wk=uNorm(inp.wb),left=row.q-t.shipped;
       if(t.wbs.has(wk)){log.push({...b,st:'skip',before:left,after:left,note:'Waybill ini sudah tercatat, dilewati'});continue}
       if(it.qty>left){log.push({...b,st:'err',before:left,note:'Qty melebihi sisa PO ('+uFmt(left)+')'});continue}
       if(!t.free.length){log.push({...b,st:'err',before:left,note:'Slot pengiriman penuh'});continue}
       const slot=t.free.shift();t.shipped+=it.qty;t.wbs.add(wk);touched.set(it.key,t);
-      actions.push({r:row.r,slot,wb:inp.wb,dt:inp.dt,qty:it.qty,q:row.q,t});applied+=it.qty;
+      actions.push({r:row.r,g:g.id,slot,wb:inp.wb,dt:inp.dt,qty:it.qty,q:row.q,t});applied+=it.qty;
       log.push({...b,st:'ok',before:left,after:left-it.qty,note:'Slot '+(slot+1)+' · waybill '+inp.wb});
     }
   }
@@ -1358,11 +1471,129 @@ function uniRefresh(){
   $('dlu').disabled=!(ready&&actions.length&&hasNum('tot_u'));prog();
 }
 
+// ===== Penyimpanan invoice ke Google Sheet (sheet FICI / SCI / UNI) + laporan =====
+const INV_CO={fici:'PT. LONGRICH INDONESIA',sci:'SHOETOWN FOOTWEAR INDUSTRIAL INDONESIA',uni:'PT ULTIMATE NOBLE INDONESIA'};
+const INV_RE=/^PA\d{10}$/; // format nomor invoice: PA + 10 digit, contoh PA2611010020
+function invNo(raw){let s=String(raw==null?'':raw).trim().toUpperCase().replace(/\s+/g,'');if(s.startsWith('ISPP-')){const p=s.split('-');s=p[p.length-1]}return s}
+function invIso(t){t=String(t==null?'':t).trim();let m=t.match(/^(\d{4})-(\d{2})-(\d{2})$/),y,mo,d;
+  if(m){y=+m[1];mo=+m[2];d=+m[3]}else if((m=t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/))){d=+m[1];mo=+m[2];y=+m[3]}else return '';
+  const dt=new Date(Date.UTC(y,mo-1,d));if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==mo-1||dt.getUTCDate()!==d)return '';
+  return y+'-'+pad2(mo)+'-'+pad2(d)}
+const invCmp=(a,b)=>a.date<b.date?-1:a.date>b.date?1:a.no<b.no?-1:a.no>b.no?1:a.id<b.id?-1:a.id>b.id?1:0;
+// Bentuk ID: ISPP-NAMA PERUSAHAAN-NOMOR INVOICE. Gabung invoice bernomor sama, cek format, tanggal, qty.
+function invPrepare(co,list){
+  const errors=[],map=new Map();
+  list.forEach(v=>{
+    const no=invNo(v.no),date=invIso(v.tgl),id='ISPP-'+INV_CO[co]+'-'+no;
+    if(!INV_RE.test(no)){errors.push('Nomor invoice "'+(no||'kosong')+'" tidak sesuai format PA + 10 digit (contoh PA2611010020)');return}
+    if(!date){errors.push(id+': tanggal invoice tidak terbaca');return}
+    const lines=(v.lines||[]).map(l=>({po:String(l.po),mat:String(l.mat),item:String(l.item||''),q:Number(l.q)||0,amt:Number(l.amt)||0}));
+    if(!lines.length||lines.some(l=>!(l.q>0))){errors.push(id+': qty barang kosong atau nol');return}
+    const e=map.get(id);
+    if(e){if(e.date!==date){errors.push(id+': nomor invoice sama tapi tanggal berbeda ('+e.date+' dan '+date+')');return}e.lines.push(...lines)}
+    else map.set(id,{id,no,date,lines});
+  });
+  return {ok:[...map.values()].sort(invCmp),errors};
+}
+async function invGuard(co,list,run,mid){
+  const el=$(mid),P=invPrepare(co,list);let dups=[],note='';
+  if(P.ok.length){try{dups=(await api('inv_check',{company:co,ids:P.ok.map(e=>e.id)})).dups||[]}catch(e){note='Tidak bisa mengecek ke Google Sheet: '+((e&&e.message)||e)}}
+  const probs=P.errors.map(uEsc);
+  dups.forEach(id=>probs.push(uEsc(id)+' sudah tersimpan di sheet '+co.toUpperCase()+' (invoice dobel)'));
+  if(note)probs.push(uEsc(note));
+  if(probs.length){
+    el.innerHTML='<span class="err">Ada masalah pada invoice, file belum diunduh:</span><br>'+probs.map(x=>'<span class="err">• '+x+'</span>').join('<br>')+'<br><button id="invforce" type="button" class="g">Tetap unduh (invoice bermasalah tidak disimpan)</button>';
+    $('invforce').onclick=async()=>{const ok=await run();if(ok!==false)await invSave(co,P.ok.filter(e=>!dups.includes(e.id)),mid)};
+    return;
+  }
+  const ok=await run();
+  if(ok!==false)await invSave(co,P.ok,mid);
+}
+async function invSave(co,ents,mid){
+  if(!ents.length)return;const el=$(mid),add=h=>{el.insertAdjacentHTML('beforeend','<br>'+h)};
+  try{
+    const r=await api('inv_save',{company:co,invoices:ents}),sv=r.saved||[];
+    if(sv.length)add('<span class="ok">✓ '+sv.length+' invoice tersimpan di sheet '+co.toUpperCase()+': '+sv.map(uEsc).join(', ')+'</span>');
+    (r.dups||[]).forEach(id=>add('<span class="err">'+uEsc(id)+' sudah ada di sheet, tidak disimpan dua kali</span>'));
+    (r.errors||[]).forEach(x=>add('<span class="err">'+uEsc(x)+'</span>'));
+    ents.filter(e=>sv.includes(e.id)&&!e.lines.some(l=>l.amt>0)).forEach(e=>add('<span class="warn">'+uEsc(e.id)+': kolom nominal (amount / price) tidak terbaca di file invoice, nominal tersimpan 0</span>'));
+  }catch(e){
+    add('<span class="err">Gagal menyimpan ke Google Sheet: '+uEsc((e&&e.message)||e)+'</span> <button type="button" class="g" id="invretry">Coba simpan lagi</button>');
+    const b=$('invretry');b.onclick=()=>{b.remove();invSave(co,ents,mid)};
+  }
+}
+// ---- Laporan dari data yang tersimpan
+async function repLoad(){
+  const r=await api('inv_list',{company:$('rep_co').value});
+  let rows=(r.rows||[]).map(x=>({c:x.c,date:String(x.date),id:String(x.id),no:String(x.no),po:x.po,mat:x.mat,item:x.item,q:Number(x.q)||0,amt:Number(x.amt)||0}));
+  const mo=$('rep_mo').value;if(mo)rows=rows.filter(x=>x.date.slice(0,7)===mo);
+  return rows.sort(invCmp);
+}
+function repAudit(rows){
+  const iss=[],ids=new Map(),nos=new Map();
+  rows.forEach(r=>{if(!ids.has(r.id))ids.set(r.id,{r,dates:new Set()});ids.get(r.id).dates.add(r.date);if(!nos.has(r.no))nos.set(r.no,new Set());nos.get(r.no).add(r.c)});
+  ids.forEach((e,id)=>{
+    if(e.dates.size>1)iss.push(id+': tanggal tidak konsisten ('+[...e.dates].join(', ')+')');
+    if(id!=='ISPP-'+INV_CO[e.r.c]+'-'+e.r.no)iss.push(id+': ID tidak sesuai nama perusahaan sheet '+String(e.r.c).toUpperCase());
+    if(!INV_RE.test(e.r.no))iss.push(id+': format nomor invoice salah');
+  });
+  nos.forEach((cs,no)=>{if(cs.size>1)iss.push(no+': nomor invoice sama muncul di beberapa perusahaan ('+[...cs].join(', ').toUpperCase()+')')});
+  return iss;
+}
+const repHead=['No','Tanggal','Invoice ID','No. Invoice','Perusahaan','No. PO','Material','Nama Item','Qty','Nominal'];
+function repTable(rows){
+  const a=[repHead];let q=0,m=0;
+  rows.forEach((r,i)=>{a.push([i+1,r.date,r.id,r.no,INV_CO[r.c]||r.c,r.po,r.mat,r.item,r.q,r.amt]);q+=r.q;m+=r.amt});
+  a.push([]);a.push(['','','','','','','','TOTAL',q,m]);return a;
+}
+function repSheet(a,w){const ws=XLSX.utils.aoa_to_sheet(a);ws['!cols']=w.map(x=>({wch:x}));return ws}
+function repInvoices(rows){
+  const m=new Map();rows.forEach(r=>{let e=m.get(r.id);if(!e){e={c:r.c,id:r.id,date:r.date,no:r.no,q:0,amt:0};m.set(r.id,e)}e.q+=r.q;e.amt+=r.amt});
+  return [...m.values()].sort(invCmp);
+}
+async function repRun(build){
+  const msg=$('rep_msg'),btns=[$('rep_sto'),$('rep_mon')];btns.forEach(b=>b.disabled=true);msg.textContent='Mengambil data dari Google Sheet…';
+  try{
+    const rows=await repLoad();
+    if(!rows.length){msg.innerHTML='<span class="warn">Belum ada data invoice yang tersimpan untuk pilihan ini.</span>';return}
+    const iss=repAudit(rows),wb=build(rows,iss);
+    saveWB(wb,wb.__name,'xlsx','xlsx','rep_msg');
+    msg.insertAdjacentHTML('beforeend','<br>'+rows.length+' baris dari '+repInvoices(rows).length+' invoice.'+(iss.length?'<br><span class="err">Perlu dicek ('+iss.length+'):</span><br>'+iss.map(x=>'<span class="err">• '+uEsc(x)+'</span>').join('<br>'):'<br><span class="ok">Pemeriksaan: tidak ada invoice dobel, urutan dan nama perusahaan sesuai.</span>'));
+  }catch(e){msg.innerHTML='<span class="err">'+uEsc((e&&e.message)||e)+'</span>'}
+  finally{btns.forEach(b=>b.disabled=false)}
+}
+$('rep_sto').onclick=()=>repRun((rows,iss)=>{
+  const co=$('rep_co').value,wb=XLSX.utils.book_new(),w=[5,12,56,16,40,16,18,40,10,14],cos=co==='all'?['fici','sci','uni']:[co];
+  if(co==='all')XLSX.utils.book_append_sheet(wb,repSheet(repTable(rows),w),'SEMUA');
+  cos.forEach(c=>{const r=rows.filter(x=>x.c===c);if(r.length)XLSX.utils.book_append_sheet(wb,repSheet(repTable(r),w),c.toUpperCase())});
+  if(iss.length)XLSX.utils.book_append_sheet(wb,repSheet([['Catatan pemeriksaan'],...iss.map(x=>[x])],[100]),'Catatan Pemeriksaan');
+  wb.__name='STO_REPORT_'+co.toUpperCase()+($('rep_mo').value?'_'+$('rep_mo').value:'');return wb;
+});
+$('rep_mon').onclick=()=>repRun((rows,iss)=>{
+  const co=$('rep_co').value,wb=XLSX.utils.book_new(),list=repInvoices(rows),mm=new Map();
+  list.forEach(e=>{const k=e.date.slice(0,7)+'|'+e.c;let x=mm.get(k);if(!x){x={mo:e.date.slice(0,7),c:e.c,n:0,q:0,amt:0};mm.set(k,x)}x.n++;x.q+=e.q;x.amt+=e.amt});
+  const sum=[['Bulan','Perusahaan','Jumlah Invoice','Total Qty','Total Nominal']];let tn=0,tq=0,ta=0;
+  [...mm.values()].sort((a,b)=>a.mo<b.mo?-1:a.mo>b.mo?1:a.c<b.c?-1:1).forEach(x=>{sum.push([x.mo,INV_CO[x.c]||x.c,x.n,x.q,x.amt]);tn+=x.n;tq+=x.q;ta+=x.amt});
+  sum.push([]);sum.push(['TOTAL','',tn,tq,ta]);
+  const det=[['Bulan','Tanggal','Invoice ID','No. Invoice','Perusahaan','Qty','Nominal']];
+  list.forEach(e=>det.push([e.date.slice(0,7),e.date,e.id,e.no,INV_CO[e.c]||e.c,e.q,e.amt]));
+  XLSX.utils.book_append_sheet(wb,repSheet(sum,[10,40,16,14,18]),'Ringkasan Bulanan');
+  XLSX.utils.book_append_sheet(wb,repSheet(det,[10,12,56,16,40,12,18]),'Per Invoice');
+  if(iss.length)XLSX.utils.book_append_sheet(wb,repSheet([['Catatan pemeriksaan'],...iss.map(x=>[x])],[100]),'Catatan Pemeriksaan');
+  wb.__name='LAPORAN_BULANAN_INVOICE_'+co.toUpperCase()+($('rep_mo').value?'_'+$('rep_mo').value:'');return wb;
+});
+
 $('dlu').onclick=()=>uDl(false);
 async function uDl(force){
   const P=U.plan;if(!P||!P.actions.length)return;
   if(!force){const w=Number($('tot_u').value);if(!totOK(P.after,w)){$('msgu').innerHTML=totBlock(P.after,w)+'<button id="forceu" type="button" class="g">Tetap unduh</button>';$('forceu').onclick=()=>uDl(true);return}}
-  const btn=$('dlu'),msg=$('msgu');btn.disabled=true;msg.textContent='Menyiapkan file, mohon tunggu…';
+  const gs=[...new Set(P.actions.map(a=>a.g))].map(id=>U.groups.find(g=>g.id===id)).filter(Boolean);
+  const list=gs.map(g=>{const i=uGet(g);return {no:i.wb,tgl:i.dt,lines:g.items.map(it=>({po:it.po,mat:it.mc,item:it.gn,q:it.qty,amt:it.amt||0}))}});
+  await invGuard(redMode==='sci'?'sci':'uni',list,uBuild,'msgu');
+}
+async function uBuild(){
+  const P=U.plan,btn=$('dlu'),msg=$('msgu');btn.disabled=true;msg.textContent='Menyiapkan file, mohon tunggu…';
+  let ok=false;
   try{
     const wb=await uLoad(U.rec.buf),ws=wb.getWorksheet(U.rec.sheet),byRow=new Map();
     P.actions.forEach(a=>byRow.set(a.r,{t:a.t,q:a.q}));
@@ -1379,9 +1610,9 @@ async function uDl(force){
       ws.getCell(r,U.rec.cols.out).value={formula:f,result:v.q-v.t.shipped}});
     wb.calcProperties={fullCalcOnLoad:true};
     const buf=await wb.xlsx.writeBuffer();
-    saveBytes(new Uint8Array(buf),U.rec.name.replace(/\.xlsx$/i,'')+'_updated','xlsx','msgu');
+    saveBytes(new Uint8Array(buf),U.rec.name.replace(/\.xlsx$/i,'')+'_updated','xlsx','msgu');ok=true;
   }catch(er){msg.innerHTML='<span class="err">Gagal: '+uEsc((er&&er.message)||er)+'</span>'}
-  btn.disabled=false;
+  btn.disabled=false;return ok;
 }
 
 $('tab_sd').onclick=()=>setTab('sd');$('tab_red').onclick=()=>setTab('red');
