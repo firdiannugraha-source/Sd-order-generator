@@ -7,8 +7,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2228%22 fill=%22%23e9f04b%22/%3E%3Cpath d=%22M20 40 44 30 68 40 44 51Z%22 fill=%22%232a2a26%22/%3E%3Cpath d=%22M20 40 44 51V82L20 70Z%22 fill=%22%232a2a26%22/%3E%3Cpath d=%22M44 51 68 40V70L44 82Z%22 fill=%22%232a2a26%22/%3E%3Cpath d=%22M20 40 44 51 68 40M44 51V82%22 fill=%22none%22 stroke=%22%23e9f04b%22 stroke-width=%222.4%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M30 37.5 50 46.5M36 35 56 44%22 stroke=%22%23e9f04b%22 stroke-width=%222.6%22 stroke-linecap=%22round%22/%3E%3Cpath d=%22M66 14 69 23M75 22 83 18%22 stroke=%22%232a2a26%22 stroke-width=%224%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2270%22 cy=%2272%22 r=%2217%22 fill=%22%23f8f4e6%22/%3E%3Cpath d=%22M62 72.5 68.5 79 79 65.5%22 fill=%22none%22 stroke=%22%232a2a26%22 stroke-width=%225%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
 /* ---- Cek permintaan daftar baru (admin) ---- */
 const pollAdmin=()=>{if(me&&me.role==='admin'&&!document.hidden&&$('v_users').hidden)refreshUsers(true)};
 setInterval(pollAdmin,90000);document.addEventListener('visibilitychange',pollAdmin);
@@ -733,6 +733,8 @@ main.stage>.navfoot .wm{margin:0;padding:0;border:0;justify-content:flex-end;tex
 
 <script>
 const $=id=>document.getElementById(id);
+const uTick=()=>new Promise(r=>setTimeout(r,40));
+const XOPT={type:'array',cellDates:false,cellStyles:false,cellFormula:false,cellHTML:false,cellNF:false,cellText:false};
 let outData=null,outWB=null,fileName='SD_ORDER.xlsx',data={o:null,s:null,inv:[],nm:{o:'',s:''},fmt:'shengda'};let tab='sd';var U={rec:null,groups:[],plan:null};
 // ODID: awalan SD + tahun + bulan (SD2611, SD2612, SD2701, ...) otomatis dari tanggal hari ini
 const odPrefix=(d=new Date())=>'SD'+String(d.getFullYear()).slice(-2)+String(d.getMonth()+1).padStart(2,'0');
@@ -751,11 +753,11 @@ function trimRef(ws){
 }
 // Baca semua sheet (invoice sering punya sheet SUMMARY / PL di samping sheet invoice)
 function readFileAll(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{try{
-  const wb=XLSX.read(new Uint8Array(r.result),{type:'array',cellDates:false});
+  const wb=XLSX.read(new Uint8Array(r.result),XOPT);
   res(wb.SheetNames.map(n=>{const ws=wb.Sheets[n];trimRef(ws);return {name:n,rows:XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null})}}))}catch(e){rej(e)}};
   r.onerror=()=>rej(new Error('File tidak bisa dibaca'));r.readAsArrayBuffer(f)})}
 function readFile(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>{try{
-  const wb=XLSX.read(new Uint8Array(r.result),{type:'array',cellDates:false});
+  const wb=XLSX.read(new Uint8Array(r.result),Object.assign({sheets:0},XOPT));
   const ws=wb.Sheets[wb.SheetNames[0]];trimRef(ws);
   res(XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null}))}catch(e){rej(e)}};
   r.onerror=()=>rej(r.error);r.readAsArrayBuffer(f)})}
@@ -791,6 +793,8 @@ function normOutstanding(raw){
 async function onPick(key,inp,info){
   const f=inp.files[0];if(!f)return;
   info.textContent='Membaca…';
+  if(key==='o')[$('fo_i'),$('fo2_i')].forEach(x=>x.textContent='Membaca…');
+  await uTick();
   let html;
   try{
     let raw=await readFile(f),extra='';
@@ -799,7 +803,9 @@ async function onPick(key,inp,info){
   catch(e){data[key]=null;html='<span class="err">Gagal membaca file: '+e.message+'</span>'}
   (key==='o'?[$('fo_i'),$('fo2_i')]:[info]).forEach(x=>x.innerHTML=html);
   data.nm[key]=data[key]?f.name:'';
-  $('go').disabled=!(data.o&&data.s);$('dlo').disabled=!(data.o&&data.inv.length);prog();
+  $('go').disabled=!(data.o&&data.s);$('dlo').disabled=!(data.o&&data.inv.length);
+  try{inp.value=''}catch(e){}
+  try{prog()}catch(e){console.error(e)}
 }
 $('fo').onchange=()=>onPick('o',$('fo'),$('fo_i'));
 $('fo2').onchange=()=>onPick('o',$('fo2'),$('fo2_i'));
@@ -1223,7 +1229,7 @@ function syncHead(v){
   $('hintw').hidden=v!=='app';
   [['tab_sd','sd'],['tab_red','red']].forEach(([id,k])=>{const on=v==='app'&&tab===k;$(id).classList.toggle('on',on);if(on)$(id).setAttribute('aria-current','page');else $(id).removeAttribute('aria-current')});
 }
-function setTab(t){tab=t;$('p_sd').hidden=t!=='sd';$('p_red').hidden=t!=='red';view('app');prog()}
+function setTab(t){tab=t;try{sessionStorage.setItem('sto_tab',t)}catch(e){}$('p_sd').hidden=t!=='sd';$('p_red').hidden=t!=='red';view('app');prog()}
 
 // ===== Kurangi Outstanding UNI & SCI =====
 // Aturan: cocokkan No. PO + Material code; nama barang harus sama; waybill yang sudah tercatat dilewati;
@@ -1242,7 +1248,7 @@ function uReady(){return U.groups.length>0&&U.groups.every(g=>{const i=uGet(g);r
 var redMode='fici';
 function setMode(m){
   const chg=m!==redMode;
-  redMode=m;
+  redMode=m;try{sessionStorage.setItem('sto_mode',m)}catch(e){}
   $('red_fici').hidden=m!=='fici';$('red_uni').hidden=m==='fici';
   ['fici','sci','uni'].forEach(k=>{$('m_'+k).classList.toggle('on',k===m)});
   if(chg){const pe=m==='fici'?$('red_fici'):$('red_uni');pe.classList.remove('mswap');void pe.offsetWidth;pe.classList.add('mswap')}
@@ -1260,6 +1266,7 @@ $('fu_rec').onchange=async e=>{
   const f=e.target.files[0],info=$('fu_rec_i');U.rec=null;
   if(!f){info.textContent='';uniRefresh();return}
   info.textContent='Membaca…';
+  await uTick();
   try{
     const buf=await f.arrayBuffer(),wb=await uLoad(buf);
     const ws=wb.worksheets.find(w=>{const h=uHead(w);return h['po no']&&h['material code']&&h['qty']});
@@ -1281,13 +1288,16 @@ $('fu_rec').onchange=async e=>{
     U.rec={buf,name:f.name,sheet:ws.name,cols,slots,rows,total};
     info.innerHTML='<span class="ok">✓ '+uEsc(f.name)+'</span> (sheet '+uEsc(ws.name)+', '+uFmt(rows.size)+' baris, total outstanding '+uFmt(total)+')';
   }catch(er){U.rec=null;info.innerHTML='<span class="err">Gagal membaca file: '+uEsc(er.message||er)+'</span>'}
-  data.nm.o=U.rec?f.name:data.nm.o;uniRefresh();
+  data.nm.o=U.rec?f.name:data.nm.o;
+  try{e.target.value=''}catch(_){}
+  try{uniRefresh()}catch(er){console.error(er)}
 };
 
 $('fu_inv').onchange=async e=>{
   const files=[...e.target.files],info=$('fu_inv_i');U.groups=[];
   if(!files.length){info.textContent='';$('u_grp').textContent='Muncul setelah invoice diunggah.';uniRefresh();return}
   info.textContent='Membaca…';
+  await uTick();
   try{
     for(const f of files){
       const wb=await uLoad(await f.arrayBuffer());
@@ -1400,8 +1410,8 @@ const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 
 async function api(action,p){
   if(!API_URL)throw new Error('Server belum disambungkan. Isi API_URL di file HTML.');
-  let r;try{r=await fetch(API_URL,{method:'POST',body:JSON.stringify(Object.assign({action,token:tok()},p||{}))})}
-  catch(e){throw new Error('Tidak bisa terhubung ke server. Periksa koneksi internet.')}
+  let r,ac=new AbortController(),tm=setTimeout(()=>ac.abort(),30000);try{r=await fetch(API_URL,{method:'POST',signal:ac.signal,body:JSON.stringify(Object.assign({action,token:tok()},p||{}))});clearTimeout(tm)}
+  catch(e){clearTimeout(tm);throw new Error('Tidak bisa terhubung ke server. Periksa koneksi internet.')}
   let j;try{j=await r.json()}catch(e){throw new Error('Jawaban server tidak terbaca.')}
   if(!j.ok){const er=new Error(j.error||'Gagal');er.auth=!!j.auth;er.status=j.status;throw er}
   return j;
@@ -1599,7 +1609,22 @@ $('v_users').addEventListener('click',async e=>{
 (async()=>{
   if(!API_URL){view('auth');$('amsg').innerHTML='<span class="warn">Server belum disambungkan. Isi API_URL di file HTML (lihat panduan pemasangan).</span>';return}
   if(!tok()){view('auth');return}
-  try{enter((await api('me')).user)}catch(e){setTok('');view('auth')}
+  let u=null,err=null;
+  for(let i=0;i<2&&!u;i++){
+    try{u=(await api('me')).user}catch(e){err=e;if(e.auth)break;await new Promise(r=>setTimeout(r,1500))}
+  }
+  if(!u){
+    if(err&&err.auth)setTok('');
+    view('auth');
+    if(err&&!err.auth)$('amsg').innerHTML='<span class="warn">'+esc(err.message)+' Muat ulang halaman untuk mencoba lagi.</span>';
+    return;
+  }
+  enter(u);
+  try{
+    const t=sessionStorage.getItem('sto_tab'),m=sessionStorage.getItem('sto_mode');
+    if(m==='sci'||m==='uni')setMode(m);
+    if(t==='red')setTab('red');
+  }catch(e){}
 })();
 $('od').addEventListener('input',prog);$('od').addEventListener('blur',prog);prog();
 </script>
