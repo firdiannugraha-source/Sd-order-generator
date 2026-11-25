@@ -41,7 +41,7 @@ p.s{color:#ecd3b6;margin:0;max-width:500px}
 .step{display:grid;grid-template-columns:36px 1fr;column-gap:14px;align-items:start}
 .step .no{grid-row:1/span 3;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font:italic 600 18px "Plus Jakarta Sans",sans-serif;color:var(--acc);background:var(--soft);border:1.5px solid var(--bd)}
 label{display:block;font-weight:700;margin:6px 0 8px}
-input[type=file],input[type=text],input[type=password],input[type=tel]{width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px dashed var(--bd);border-radius:14px;background:var(--soft);color:var(--fg);font:inherit;transition:border-color .15s,box-shadow .15s}
+input[type=file],input[type=text],input[type=password],input[type=tel],input[type=number]{width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px dashed var(--bd);border-radius:14px;background:var(--soft);color:var(--fg);font:inherit;transition:border-color .15s,box-shadow .15s}
 input[type=text],input[type=password],input[type=tel]{border-style:solid;background:var(--card)}
 input[type=file]::file-selector-button{margin:0 12px 0 0;padding:8px 16px;border:0;border-radius:999px;background:var(--acc);color:var(--on-acc);font:700 14px "Plus Jakarta Sans",sans-serif;cursor:pointer}
 input:focus-visible,button:focus-visible{outline:3px solid color-mix(in srgb,var(--acc) 45%,transparent);outline-offset:2px;border-color:var(--acc)}
@@ -252,6 +252,7 @@ main.stage{max-width:none;margin:0;padding:4px 6px 0;min-width:0}
 .kc.done .no{background:var(--ok);color:#fff;border-color:var(--ok)}
 .kc label{display:block;margin:0 0 10px;font-size:15px;font-weight:800;line-height:1.3}
 .kc input[type=file]{border-radius:12px;border:1.5px dashed #c9cff0;background:#f7f8ff;font-size:12.5px;padding:8px}
+.kc input[type=number]{border-radius:12px;border:1.5px solid var(--bd);background:#fff}
 .kc input[type=text]{border-radius:12px;border:1.5px solid var(--bd);background:#fff}
 input[type=file]::file-selector-button{border-radius:10px;background:var(--acc)}
 .kc .f{margin-top:8px;font-size:12.5px;word-break:break-word}
@@ -360,10 +361,10 @@ tr:hover td{background:#fafbff}
 <div class="segs" id="red_sel" role="tablist" aria-label="Jenis Outstanding" style="max-width:420px;margin-bottom:16px"><button type="button" id="m_fici" class="on" style="flex:1">FICI</button><button type="button" id="m_sci" style="flex:1">SCI</button><button type="button" id="m_uni" style="flex:1">UNI</button></div>
 <div id="red_fici">
 <div class="board">
-<section class="col"><div class="chead"><h2>Menunggu</h2><span class="kn" id="n_red_w">2</span></div><div class="cbody" id="w_red" data-empty="Semua langkah sudah terisi"><div class="kc req" id="st_o2" data-o="1"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">1</span></div><label for="fo2">File Outstanding (.xls / .xlsx)</label><input type="file" id="fo2" accept=".xls,.xlsx"><div class="f" id="fo2_i"></div></div><div class="kc req" id="st_inv" data-o="2"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">2</span></div><label for="fi">Invoice pengiriman (boleh lebih dari satu)</label><input type="file" id="fi" accept=".xls,.xlsx" multiple><div class="f">Qty di invoice dikurangkan dari Outstanding sesuai No. PO dan material.</div><div class="f" id="fi_i"></div></div></div></section>
+<section class="col"><div class="chead"><h2>Menunggu</h2><span class="kn" id="n_red_w">3</span></div><div class="cbody" id="w_red" data-empty="Semua langkah sudah terisi"><div class="kc req" id="st_o2" data-o="1"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">1</span></div><label for="fo2">File Outstanding (.xls / .xlsx)</label><input type="file" id="fo2" accept=".xls,.xlsx"><div class="f" id="fo2_i"></div></div><div class="kc req" id="st_inv" data-o="2"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">2</span></div><label for="fi">Invoice pengiriman (boleh lebih dari satu)</label><input type="file" id="fi" accept=".xls,.xlsx" multiple><div class="f">Qty di invoice dikurangkan dari Outstanding sesuai No. PO dan material.</div><div class="f" id="fi_i"></div></div><div class="kc req" id="st_tot" data-o="3"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">3</span></div><label for="tot_f">Total qty Outstanding setelah pengurangan</label><input type="number" id="tot_f" inputmode="decimal" step="any" min="0" placeholder="Contoh: 12500"><div class="f">Total sisa Outstanding yang seharusnya setelah dikurangi invoice. Hasil unduhan harus sama dengan angka ini.</div></div></div></section>
 <section class="col"><div class="chead"><h2>Selesai</h2><span class="kn" id="n_red_d">0</span></div><div class="cbody" id="d_red" data-empty="Belum ada langkah yang selesai"></div></section>
 <section class="col"><div class="chead"><h2>Hasil</h2></div><div class="cbody"><div class="kc proc"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Proses</span></div>
-<div class="f">Unggah Outstanding dan invoice, lalu unduh Outstanding Terbaru. File Outstanding yang sama dipakai di menu Buat SD Order.</div>
+<div class="f">Unggah Outstanding dan invoice, isi total qty setelah pengurangan, lalu unduh Outstanding Terbaru. File Outstanding yang sama dipakai di menu Buat SD Order.</div>
 <div class="actions"><button id="dlo" disabled>Hitung &amp; Unduh Outstanding Terbaru</button></div>
 <div id="msg2" class="f"></div></div></div></section>
 </div>
@@ -371,10 +372,11 @@ tr:hover td{background:#fafbff}
 </div>
 <div id="red_uni" hidden>
 <div class="board">
-<section class="col"><div class="chead"><h2>Menunggu</h2><span class="kn" id="n_uni_w">3</span></div><div class="cbody" id="w_uni" data-empty="Semua langkah sudah terisi">
+<section class="col"><div class="chead"><h2>Menunggu</h2><span class="kn" id="n_uni_w">4</span></div><div class="cbody" id="w_uni" data-empty="Semua langkah sudah terisi">
 <div class="kc req" id="st_u1" data-o="1"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">1</span></div><label for="fu_rec">File Outstanding Record UNI / SCI (.xlsx)</label><input type="file" id="fu_rec" accept=".xlsx"><div class="f" id="fu_rec_i"></div></div>
 <div class="kc req" id="st_u2" data-o="2"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">2</span></div><label for="fu_inv">Invoice / shipping list (boleh lebih dari satu)</label><input type="file" id="fu_inv" accept=".xlsx" multiple><div class="f">Kolom yang dibaca: customer PONO, MaterialCODE, goodscode, qty, ODID.</div><div class="f" id="fu_inv_i"></div></div>
 <div class="kc req" id="st_u3" data-o="3"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">3</span></div><label>No. waybill (PA) dan tanggal kirim per ODID</label><div id="u_grp" class="f">Muncul setelah invoice diunggah.</div></div>
+<div class="kc req" id="st_utot" data-o="4"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">4</span></div><label for="tot_u">Total qty Outstanding setelah pengurangan</label><input type="number" id="tot_u" inputmode="decimal" step="any" min="0" placeholder="Contoh: 12500"><div class="f">Total sisa Outstanding yang seharusnya setelah dikurangi invoice. Hasil unduhan harus sama dengan angka ini.</div></div>
 </div></section>
 <section class="col"><div class="chead"><h2>Selesai</h2><span class="kn" id="n_uni_d">0</span></div><div class="cbody" id="d_uni" data-empty="Belum ada langkah yang selesai"></div></section>
 <section class="col"><div class="chead"><h2>Hasil</h2></div><div class="cbody"><div class="kc proc"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Proses</span></div>
@@ -589,6 +591,18 @@ function reduce(force){
   }
   return {red,log};
 }
+// ---- Cek total: total Outstanding hasil pengurangan harus sama dengan total qty yang dimasukkan
+const nf=n=>Number(n).toLocaleString('id-ID',{maximumFractionDigits:3});
+const totOK=(a,b)=>Math.abs(a-b)<1e-9;
+const hasNum=id=>{const v=$(id).value;return v.trim()!==''&&!isNaN(Number(v))};
+function totLine(total,want){
+  if(isNaN(want))return '';
+  const d=total-want;
+  return 'Total setelah pengurangan <b>'+nf(total)+'</b> \u00b7 total yang Anda masukkan <b>'+nf(want)+'</b> \u2192 '+(totOK(total,want)?'<span class="ok">Balance, sama persis</span>':'<span class="err">Tidak balance, selisih '+(d>0?'+':'')+nf(d)+'</span>');
+}
+function totBlock(total,want){
+  return '<span class="err">Total Outstanding hasil pengurangan '+nf(total)+' tidak sama dengan total yang Anda masukkan '+nf(want)+' (selisih '+(total-want>0?'+':'')+nf(total-want)+'). File belum diunduh. Cek angka yang dimasukkan atau tabel di bawah.</span> ';
+}
 function buildOutstanding(){
   const {red,log}=reduce(true);
   const fici=data.fmt==='fici';
@@ -599,12 +613,12 @@ function buildOutstanding(){
   const head=[...base];
   invs.forEach((v,k)=>{const n=invs.length>1?' '+(k+1):'';head.push('Tanggal Pengiriman'+n,'Qty Invoice'+n)});
   head.push('Sisa Qty Outstanding');
-  const aoa=[head];
+  const aoa=[head];let total=0;
   for(let i=1;i<data.o.length;i++){
     const r=data.o[i]||[];const e=red.get(i);
     const row=fici?cols.map(c=>r[c]==null?null:r[c]):(()=>{const x=r.slice(0,14);while(x.length<14)x.push(null);return x})();
     invs.forEach(v=>{const q=e&&e.by[v.no];row.push(q?v.tgl:null,q||null)});
-    row.push(num(r[5])-num(r[12])-(e?e.qty:0));aoa.push(row);
+    const rem=num(r[5])-num(r[12])-(e?e.qty:0);total+=rem;row.push(rem);aoa.push(row);
   }
   const bukti=[['No. Invoice','Tanggal Pengiriman','No. PO','Material','Nama Item','Qty Invoice dipotong','Baris di Outstanding','Sisa sebelum','Sisa sesudah','Catatan'],
     ...log.map(l=>[l.inv,l.tgl,l.po,l.mat,l.item,l.skip?0:l.q,l.row,l.before,l.after,l.note||''])];
@@ -612,15 +626,17 @@ function buildOutstanding(){
   const s1=XLSX.utils.aoa_to_sheet(aoa);s1['!cols']=[...(fici?[12,16,16,46,10,16,16]:[12,22,14,14,8,10,16,8,12,16,36,16,10,10]),...invs.flatMap(()=>[20,12]),22].map(w=>({wch:w}));
   const s2=XLSX.utils.aoa_to_sheet(bukti);s2['!cols']=[26,18,16,16,44,12,14,12,12,50].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb,s1,'Outstanding Terbaru');XLSX.utils.book_append_sheet(wb,s2,'Pengurangan Invoice');
-  return {wb,log,red};
+  return {wb,log,red,total};
 }
 $('dlo').onclick=()=>{
   try{
     const r=buildOutstanding();
     const pot=r.log.filter(l=>!l.bad&&!l.skip).reduce((a,l)=>a+l.q,0),bad=r.log.filter(l=>l.bad),skp=r.log.filter(l=>l.skip),sfx=r.log.filter(l=>/^Material dicocokkan/.test(l.note||''));
-    saveWB(r.wb,'OUTSTANDING_TERBARU','xlsx','xlsx','msg2');
+    const want=Number($('tot_f').value),dl2=()=>saveWB(r.wb,'OUTSTANDING_TERBARU','xlsx','xlsx','msg2');
+    if(totOK(r.total,want))dl2();
+    else{$('msg2').innerHTML=totBlock(r.total,want)+'<button id="force2" type="button" class="g">Tetap unduh</button>';$('force2').onclick=dl2}
     $('out2').innerHTML='<div class="card"><b>'+r.red.size+' baris Outstanding</b> dikurangi, total <b>'+pot.toLocaleString('id-ID')+' pcs</b> dari '+data.inv.length+' invoice.<br>'+
-      (sfx.length?'<span class="warn">'+sfx.length+' baris invoice memakai material code tanpa akhiran -N dibanding Outstanding, cek invoicenya (tanda kuning di bawah)</span><br>':'')+(skp.length?'<span class="ok">'+skp.length+' baris invoice sudah tercatat di file Outstanding (FICI), jadi tidak dikurangi lagi</span><br>':'')+(bad.length?'<span class="warn">'+bad.length+' baris invoice tidak terpotong penuh, lihat tanda kuning di bawah</span>':(skp.length&&!pot?'':'<span class="ok">Semua baris invoice berhasil diproses</span>'))+'</div>'+
+      (sfx.length?'<span class="warn">'+sfx.length+' baris invoice memakai material code tanpa akhiran -N dibanding Outstanding, cek invoicenya (tanda kuning di bawah)</span><br>':'')+(skp.length?'<span class="ok">'+skp.length+' baris invoice sudah tercatat di file Outstanding (FICI), jadi tidak dikurangi lagi</span><br>':'')+(bad.length?'<span class="warn">'+bad.length+' baris invoice tidak terpotong penuh, lihat tanda kuning di bawah</span>':(skp.length&&!pot?'':'<span class="ok">Semua baris invoice berhasil diproses</span>'))+'<br>'+totLine(r.total,want)+'</div>'+
       '<div class="card sc scl"><table><tr><th>Invoice</th><th>Tgl kirim</th><th>PO</th><th>Material</th><th class="n">Qty</th><th class="n">Baris</th><th class="n">Sisa sebelum</th><th class="n">Sisa sesudah</th><th>Catatan</th></tr>'+
       r.log.map(l=>'<tr><td>'+l.inv+'</td><td>'+l.tgl+'</td><td>'+l.po+'</td><td>'+l.mat+'</td><td class="n">'+l.q+'</td><td class="n">'+l.row+'</td><td class="n">'+l.before+'</td><td class="n">'+l.after+'</td><td'+(l.bad||/^Material dicocokkan/.test(l.note||'')?' class="bad"':'')+'>'+(l.note||'')+'</td></tr>').join('')+'</table></div>';
   }catch(e){$('msg2').innerHTML='<span class="err">Gagal membuat Outstanding Terbaru: '+((e&&e.message)||e)+'</span>'}
@@ -846,12 +862,13 @@ $('dl2').onclick=()=>save('xls','biff8');
 function prog(){
   const a=!!data.o,b=!!data.s,c=$('od').value.trim().length>odPrefix().length,d=!!outWB,e=data.inv.length>0;
   let n,tot,hint;
-  if(tab==='red'&&redMode!=='fici'){const u=uniState();n=u[0]+u[1]+u[2];tot=3;hint=u[2]?'Siap! Tekan Unduh Outstanding Terbaru.':u[1]?'Isi waybill dan tanggal untuk tiap ODID.':u[0]?'Sedikit lagi, tinggal unggah invoice / shipping list.':'Yuk mulai! Unggah file Outstanding record dulu.'}else if(tab==='red'){n=a+e;tot=2;hint=a&&e?'Siap! Tekan Hitung & Unduh Outstanding Terbaru.':a?'Sedikit lagi, tinggal unggah invoice.':'Yuk mulai! Unggah file Outstanding dulu.'}
+  if(tab==='red'&&redMode!=='fici'){const u=uniState();n=u[0]+u[1]+u[2]+u[3];tot=4;hint=u[2]&&u[3]?'Siap! Tekan Unduh Outstanding Terbaru.':u[2]?'Terakhir, isi total qty Outstanding setelah pengurangan.':u[1]?'Isi waybill dan tanggal untuk tiap ODID.':u[0]?'Sedikit lagi, tinggal unggah invoice / shipping list.':'Yuk mulai! Unggah file Outstanding record dulu.'}else if(tab==='red'){const t=hasNum('tot_f');n=a+e+t;tot=3;hint=a&&e&&t?'Siap! Tekan Hitung & Unduh Outstanding Terbaru.':a&&e?'Terakhir, isi total qty Outstanding setelah pengurangan.':a?'Sedikit lagi, tinggal unggah invoice.':'Yuk mulai! Unggah file Outstanding dulu.'}
   else{n=a+b+c+d;tot=4;hint=d&&c?'Selesai! SD Order siap diunduh. Kerja bagus!':d?'SD Order sudah dibuat, tapi ODID belum lengkap. Tambahkan nomor urut di belakang awalan.':(a&&b)?'Siap! Tekan Buat SD Order.':(a||b)?'Sedikit lagi, tinggal satu file.':'Yuk mulai! Unggah file Outstanding dulu.'}
   const pct=Math.round(n*100/tot);
   $('bar').style.width=pct+'%';$('pt').textContent='Progres: '+pct+'% ('+n+' dari '+tot+' langkah)';$('hint').textContent=hint;
-  [['st1',a,'1'],['st2',b,'2'],['st3',c,'3'],['st_o2',a,'1']].forEach(([id,v,no])=>{const el=$(id);el.classList.toggle('done',v);el.querySelector('.no').textContent=v?'\u2713':no});
-  placeCards([['w_sd','d_sd','n_sd_w','n_sd_d',[['st1',a],['st2',b],['st3',c]]],['w_red','d_red','n_red_w','n_red_d',[['st_o2',a],['st_inv',e]]],['w_uni','d_uni','n_uni_w','n_uni_d',(()=>{const u=uniState();return [['st_u1',u[0]],['st_u2',u[1]],['st_u3',u[2]]]})()]]);
+  [['st1',a,'1'],['st2',b,'2'],['st3',c,'3'],['st_o2',a,'1'],['st_tot',hasNum('tot_f'),'3']].forEach(([id,v,no])=>{const el=$(id);el.classList.toggle('done',v);el.querySelector('.no').textContent=v?'\u2713':no});
+  placeCards([['w_sd','d_sd','n_sd_w','n_sd_d',[['st1',a],['st2',b],['st3',c]]],['w_red','d_red','n_red_w','n_red_d',[['st_o2',a],['st_inv',e],['st_tot',hasNum('tot_f')]]],['w_uni','d_uni','n_uni_w','n_uni_d',(()=>{const u=uniState();return [['st_u1',u[0]],['st_u2',u[1]],['st_u3',u[2]],['st_utot',u[3]]]})()]]);
+  $('dlo').disabled=!(data.o&&data.inv.length&&hasNum('tot_f'));
   uniMarks();updRecent();
 }
 // Kartu langkah pindah dari kolom Menunggu ke Selesai saat terisi (kartu yang sedang diketik tidak dipindah)
@@ -875,7 +892,7 @@ function updRecent(){
   set('r_i',data.inv.length?data.inv.map(v=>v.no).join(', '):'Belum diunggah',data.inv.length>0);
 }
 const PAGES={sd:['Buat SD Order','Unggah Outstanding dan Shipping Plan, lalu unduh SD Order yang sudah jadi. File diproses di komputer Anda, tidak dikirim ke mana pun.'],
-  red:['Kurangi Outstanding','Unggah Outstanding dan invoice pengiriman, lalu unduh Outstanding Terbaru lengkap dengan bukti pengurangan.']};
+  red:['Kurangi Outstanding','Unggah Outstanding, invoice pengiriman dan total qty setelah pengurangan, lalu unduh Outstanding Terbaru lengkap dengan bukti pengurangan.']};
 function syncHead(v){
   let t,sub;
   if(v==='auth'){t='SD Order Generator by Laras';sub='Masuk untuk mulai. File diproses di komputer Anda, tidak dikirim ke mana pun.'}
@@ -908,12 +925,13 @@ function setMode(m){
   ['fici','sci','uni'].forEach(k=>{$('m_'+k).classList.toggle('on',k===m)});
   const n=m.toUpperCase();
   const lb=document.querySelector('label[for="fu_rec"]');if(lb)lb.textContent='File Outstanding Record '+n+' (.xlsx)';
-  $('ph_s').textContent=m==='fici'?PAGES.red[1]:'Unggah Outstanding Record '+n+' dan invoice / shipping list, isi waybill dan tanggal kirim, lalu unduh Outstanding Terbaru. File diproses di komputer Anda, tidak dikirim ke mana pun.';
+  $('ph_s').textContent=m==='fici'?PAGES.red[1]:'Unggah Outstanding Record '+n+' dan invoice / shipping list, isi waybill, tanggal kirim dan total qty setelah pengurangan, lalu unduh Outstanding Terbaru. File diproses di komputer Anda, tidak dikirim ke mana pun.';
   prog();
 }
+$('tot_f').oninput=()=>prog();$('tot_u').oninput=()=>uniRefresh();
 $('m_fici').onclick=()=>setMode('fici');$('m_sci').onclick=()=>setMode('sci');$('m_uni').onclick=()=>setMode('uni');
-function uniState(){return [!!U.rec,U.groups.length>0,uReady()]}
-function uniMarks(){[['st_u1',0,'1'],['st_u2',1,'2'],['st_u3',2,'3']].forEach(([id,k,no])=>{const el=$(id),v=uniState()[k];el.classList.toggle('done',v);el.querySelector('.no').textContent=v?'\u2713':no})}
+function uniState(){return [!!U.rec,U.groups.length>0,uReady(),hasNum('tot_u')]}
+function uniMarks(){[['st_u1',0,'1'],['st_u2',1,'2'],['st_u3',2,'3'],['st_utot',3,'4']].forEach(([id,k,no])=>{const el=$(id),v=uniState()[k];el.classList.toggle('done',v);el.querySelector('.no').textContent=v?'\u2713':no})}
 
 $('fu_rec').onchange=async e=>{
   const f=e.target.files[0],info=$('fu_rec_i');U.rec=null;
@@ -995,20 +1013,22 @@ function uniRefresh(){
       log.push({...b,st:'ok',before:left,after:left-it.qty,note:'Slot '+(slot+1)+' · waybill '+inp.wb});
     }
   }
-  U.plan={actions,log,applied};
+  U.plan={actions,log,applied,after:U.rec.total-applied};
   const n=k=>log.filter(o=>o.st===k).length,bad=n('err');
   const lab={ok:['OK','ok'],skip:['Lewati','warn'],err:['Error','err']},ord={err:0,skip:1,ok:2};
   const rows=[...log].sort((a,b)=>ord[a.st]-ord[b.st]);
-  out.innerHTML='<div class="card"><b>'+uFmt(applied)+' pcs</b> akan dikurangi di '+uFmt(touched.size)+' baris dari '+uFmt(log.length)+' baris invoice. Outstanding '+uFmt(U.rec.total)+' → <b>'+uFmt(U.rec.total-applied)+'</b>.<br>'+
+  out.innerHTML='<div class="card"><b>'+uFmt(applied)+' pcs</b> akan dikurangi di '+uFmt(touched.size)+' baris dari '+uFmt(log.length)+' baris invoice. Outstanding '+uFmt(U.rec.total)+' → <b>'+uFmt(U.rec.total-applied)+'</b>.<br>'+(hasNum('tot_u')?totLine(U.rec.total-applied,Number($('tot_u').value))+'<br>':'')+
     '<span class="ok">OK: '+n('ok')+'</span> · <span class="warn">Dilewati: '+n('skip')+'</span> · <span class="'+(bad?'err':'ok')+'">Error: '+bad+'</span>'+(bad?'<br><span class="warn">Baris error tidak diubah sama sekali di file hasil.</span>':'')+'</div>'+
     '<div class="card sc scl"><table><tr><th>Status</th><th>ODID</th><th>PO NO</th><th>Material code</th><th class="n">Qty invoice</th><th class="n">Sisa sebelum</th><th class="n">Sisa sesudah</th><th>Keterangan</th></tr>'+
     rows.slice(0,600).map(o=>'<tr><td><span class="'+lab[o.st][1]+'">'+lab[o.st][0]+'</span></td><td>'+uEsc(o.od)+'</td><td>'+uEsc(o.po)+'</td><td>'+uEsc(o.mc)+'</td><td class="n">'+uFmt(o.qty)+'</td><td class="n">'+(o.before==null?'':uFmt(o.before))+'</td><td class="n">'+(o.after==null?'':uFmt(o.after))+'</td><td'+(o.st==='err'?' class="bad"':'')+'>'+uEsc(o.note)+'</td></tr>').join('')+
     (rows.length>600?'<tr><td colspan="8">Menampilkan 600 dari '+rows.length+' baris (error dan dilewati paling atas).</td></tr>':'')+'</table></div>';
-  $('dlu').disabled=!(ready&&actions.length);prog();
+  $('dlu').disabled=!(ready&&actions.length&&hasNum('tot_u'));prog();
 }
 
-$('dlu').onclick=async()=>{
+$('dlu').onclick=()=>uDl(false);
+async function uDl(force){
   const P=U.plan;if(!P||!P.actions.length)return;
+  if(!force){const w=Number($('tot_u').value);if(!totOK(P.after,w)){$('msgu').innerHTML=totBlock(P.after,w)+'<button id="forceu" type="button" class="g">Tetap unduh</button>';$('forceu').onclick=()=>uDl(true);return}}
   const btn=$('dlu'),msg=$('msgu');btn.disabled=true;msg.textContent='Menyiapkan file, mohon tunggu…';
   try{
     const wb=await uLoad(U.rec.buf),ws=wb.getWorksheet(U.rec.sheet),byRow=new Map();
@@ -1029,7 +1049,7 @@ $('dlu').onclick=async()=>{
     saveBytes(new Uint8Array(buf),U.rec.name.replace(/\.xlsx$/i,'')+'_updated','xlsx','msgu');
   }catch(er){msg.innerHTML='<span class="err">Gagal: '+uEsc((er&&er.message)||er)+'</span>'}
   btn.disabled=false;
-};
+}
 
 $('tab_sd').onclick=()=>setTab('sd');$('tab_red').onclick=()=>setTab('red');
 new MutationObserver(()=>{$('ava').textContent=($('who').textContent.trim()[0]||'?').toUpperCase()}).observe($('who'),{childList:true,characterData:true,subtree:true});
