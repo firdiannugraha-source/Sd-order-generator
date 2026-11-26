@@ -584,23 +584,44 @@ main.stage>.navfoot .wm{margin:0;padding:0;border:0;justify-content:flex-end;tex
 .widgets .wx-ctl select option{color:var(--ink)}
 .widgets .wx-ctl button{background:var(--lime);color:var(--ink)}
 .widgets .clockwrap .dig{color:#fff}
-/* animasi perpindahan menu yang lebih halus */
-@keyframes vin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-@keyframes vout{to{opacity:0}}
+/* animasi perpindahan menu yang lebih halus & efek zoom saat hover */
+@keyframes vin{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes vout{from{opacity:1;transform:none}to{opacity:0;transform:translateY(-8px) scale(.99)}}
 @keyframes drin2{from{transform:translateX(-102%);opacity:.6}to{transform:none;opacity:1}}
 @keyframes drout{from{transform:none;opacity:1}to{transform:translateX(-102%);opacity:.6}}
 @keyframes sfade{from{opacity:0}to{opacity:1}}
-#v_auth:not([hidden]),#v_app:not([hidden]),#v_users:not([hidden]),#p_sd:not([hidden]),#p_red:not([hidden]),#p_rep:not([hidden]){animation:vin .42s cubic-bezier(.22,.61,.36,1) both}
-.board>.col{animation:vin .5s cubic-bezier(.22,.61,.36,1) both}
+#v_auth:not([hidden]),#v_app:not([hidden]),#v_users:not([hidden]),#p_sd:not([hidden]),#p_red:not([hidden]),#p_rep:not([hidden]),#p_drv:not([hidden]){animation:vin .45s cubic-bezier(.22,1,.36,1) both;will-change:opacity,transform}
+.drv-grid{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:899px){.drv-grid{grid-template-columns:1fr}}
+.drv-list{display:flex;flex-direction:column;gap:10px}
+.drv-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-radius:18px;background:var(--paper);border:1px solid rgba(29,29,25,.08)}
+.drv-item b{display:block;font-size:15px;color:var(--ink)}
+.drv-item .f{margin-top:2px}
+.drv-act{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.drv-act a.wa{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:var(--lime);color:var(--ink);font:700 13px "Manrope",sans-serif;text-decoration:none}
+.drv-act a.wa:hover{background:#e2eb1f}
+.drv-act button{margin:0;padding:8px 13px;font-size:12.5px}
+.page-leave{animation:vout .18s cubic-bezier(.4,0,1,1) both!important;pointer-events:none}
+.board>.col{animation:vin .5s cubic-bezier(.22,1,.36,1) both}
 .board>.col:nth-child(2){animation-delay:.06s}
 .board>.col:nth-child(3){animation-delay:.12s}
-.menuwrap .menudrop{animation:drin2 .34s cubic-bezier(.22,.61,.36,1) both;will-change:transform}
+.menuwrap .menudrop{animation:drin2 .34s cubic-bezier(.22,1,.36,1) both;will-change:transform}
 .menuwrap .menudrop.out{animation:drout .26s cubic-bezier(.4,0,.6,1) both}
 .scrim{animation:sfade .3s ease both}
 .scrim.out{animation:vout .26s ease both}
-.nv{transition:background .25s ease,color .25s ease,box-shadow .25s ease,transform .25s ease}
-@media (prefers-reduced-motion:reduce){*{animation:none!important}}
-.mswap{animation:vin .42s cubic-bezier(.22,.61,.36,1) both}
+.burger{transition:background .25s ease,transform .28s cubic-bezier(.22,1,.36,1),box-shadow .28s ease}
+.burger:hover:not(:disabled){background:#fff;transform:scale(1.07);box-shadow:0 6px 16px rgba(29,29,25,.14)}
+.burger:active:not(:disabled){transform:scale(.97)}
+.nv{transition:background .25s ease,color .25s ease,box-shadow .28s ease,transform .28s cubic-bezier(.22,1,.36,1);transform-origin:center}
+.nv svg{transition:transform .28s cubic-bezier(.22,1,.36,1)}
+.nv:hover:not(:disabled){transform:scale(1.035);box-shadow:0 6px 16px rgba(29,29,25,.08)}
+.nv:hover:not(:disabled) svg{transform:scale(1.12)}
+.nv:active:not(:disabled){transform:scale(.98)}
+.menuwrap .menudrop .nv{transform-origin:left center}
+.menuwrap .menudrop .nv:hover:not(:disabled){background:var(--soft);transform:scale(1.035) translateX(4px);box-shadow:0 6px 16px rgba(29,29,25,.08)}
+.menuwrap .menudrop .nv.on:hover:not(:disabled){background:var(--ink);color:#fff;transform:scale(1.02) translateX(2px)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.mswap{animation:vin .42s cubic-bezier(.22,1,.36,1) both}
 /* tab Laporan: preview gaya Excel */
 .xlbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .xlbar select{width:auto;max-width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid var(--bd);border-radius:14px;background:var(--card);color:var(--fg);font:600 14px "Plus Jakarta Sans",sans-serif}
@@ -642,6 +663,7 @@ main.stage>.navfoot .wm{margin:0;padding:0;border:0;justify-content:flex-end;tex
 <button type="button" class="nv on" id="tab_sd" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="18" rx="2"/><rect x="14" y="3" width="7" height="11" rx="2"/></svg><span>Buat SD Order</span></button>
 <button type="button" class="nv" id="tab_red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg><span>Kurangi Outstanding</span></button>
 <button type="button" class="nv" id="tab_rep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg><span>Laporan Invoice</span></button>
+<button type="button" class="nv" id="tab_drv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="13" height="10" rx="2"/><path d="M15 9h3.5l2.5 3v4h-6z"/><circle cx="6.5" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg><span>List Driver</span></button>
 <button type="button" class="nv" id="tab_set" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg><span>Pengaturan</span><span class="tbadge" id="tbadge" hidden></span></button><div class="acct"><div class="tools" id="tools" hidden>
 <button id="gear" class="gear" type="button" aria-label="Pengaturan" title="Pengaturan" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="gbadge" id="gbadge" hidden>0</span></button>
 <span class="ava" id="ava">?</span><span class="who" id="who"></span>
@@ -727,7 +749,7 @@ main.stage>.navfoot .wm{margin:0;padding:0;border:0;justify-content:flex-end;tex
 <section class="col"><div class="chead"><h2>Langkah</h2><span class="kn" id="n_uni_w">0/4</span></div><div class="cbody" id="w_uni" data-empty="Semua langkah sudah terisi">
 <div class="kc req" id="st_u1" data-o="1"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">1</span></div><label for="fu_rec">File Outstanding Record UNI / SCI (.xlsx)</label><input type="file" id="fu_rec" accept=".xlsx"><div class="f" id="fu_rec_i"></div></div>
 <div class="kc req" id="st_u2" data-o="2"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">2</span></div><label for="fu_inv">Invoice / shipping list (boleh lebih dari satu)</label><input type="file" id="fu_inv" accept=".xlsx" multiple><div class="f">Kolom yang dibaca: customer PONO, MaterialCODE, goodscode, qty, ODID.</div><div class="f" id="fu_inv_i"></div></div>
-<div class="kc req" id="st_u3" data-o="3"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">3</span></div><label>No. waybill (PA) dan tanggal kirim per ODID</label><div id="u_grp" class="f">Muncul setelah invoice diunggah.</div></div>
+<div class="kc req" id="st_u3" data-o="3"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">3</span></div><label>Tanggal kirim per ODID</label><div id="u_grp" class="f">Muncul setelah invoice diunggah.</div></div>
 <div class="kc req" id="st_utot" data-o="4"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Wajib</span><span class="no">4</span></div><label for="tot_u">Total qty Outstanding setelah pengurangan</label><input type="number" id="tot_u" inputmode="decimal" step="any" min="0" placeholder="Contoh: 12500"><div class="f">Total sisa Outstanding yang seharusnya setelah dikurangi invoice. Hasil unduhan harus sama dengan angka ini.</div></div>
 </div></section>
 <section class="col"><div class="chead"><h2>Hasil</h2></div><div class="cbody"><div class="kc proc"><div class="ktab"><span class="chip"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Proses</span></div>
@@ -767,6 +789,31 @@ main.stage>.navfoot .wm{margin:0;padding:0;border:0;justify-content:flex-end;tex
 <div class="xlgrid" id="xl_grid" tabindex="0" aria-label="Preview laporan"><table id="xl_tb"></table></div>
 <div class="xlfoot" id="xl_foot" role="status"></div>
 <div class="xltabs" id="xl_tabs" role="tablist" aria-label="Sheet laporan"></div>
+</div>
+</div>
+
+<div id="p_drv" role="tabpanel" hidden>
+<div class="drv-grid">
+<div class="card">
+<h2>Tambah Driver Baru</h2>
+<div class="f" style="margin-bottom:14px">Data tersimpan ke Google Sheet pada sheet <b>data driver</b>.</div>
+<form id="f_drv" autocomplete="off">
+<div class="field"><label for="drv_name">Nama Driver</label><input type="text" id="drv_name" placeholder="Contoh: Budi Santoso" required></div>
+<div class="field"><label for="drv_phone">Nomor Telepon / WhatsApp</label><input type="tel" id="drv_phone" inputmode="tel" placeholder="Contoh: 081234567890" required><div class="f">Awalan 0 otomatis diubah ke 62 untuk tautan WhatsApp.</div></div>
+<button type="submit" id="drv_add" style="width:100%;margin-top:4px">Simpan Driver</button>
+</form>
+<div id="drv_msg" class="f" role="status" style="margin-top:12px"></div>
+</div>
+<div class="card">
+<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px">
+<h2 style="margin:0">Daftar Driver <span class="cnt" id="drv_cnt">0</span></h2>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+<input type="text" id="drv_q" placeholder="Cari nama atau nomor…" aria-label="Cari driver" style="width:auto;min-width:180px;padding:8px 12px">
+<button type="button" id="drv_reload" class="g" style="padding:8px 16px;font-size:13.5px">Muat ulang</button>
+</div>
+</div>
+<div id="drv_list" class="drv-list"><div class="f">Memuat daftar driver…</div></div>
+</div>
 </div>
 </div>
 </section>
@@ -1349,10 +1396,10 @@ function saveWB(wbk,fname,ext,type,mid){mid=mid||'msg';
 $('dl').onclick=()=>save('xlsx','xlsx');
 $('dl2').onclick=()=>save('xls','biff8');
 function prog(){
-  if(tab==='rep')return;
+  if(tab==='rep'||tab==='drv')return;
   const a=!!data.o,b=!!data.s,c=$('od').value.trim().length>odPrefix().length,d=!!outWB,e=data.inv.length>0;
   let n,tot,hint;
-  if(tab==='red'&&redMode!=='fici'){const u=uniState();n=u[0]+u[1]+u[2]+u[3];tot=4;hint=u[2]&&u[3]?'Siap! Tekan Unduh Outstanding Terbaru.':u[2]?'Terakhir, isi total qty Outstanding setelah pengurangan.':u[1]?'Isi waybill dan tanggal untuk tiap ODID.':u[0]?'Sedikit lagi, tinggal unggah invoice / shipping list.':'Yuk mulai! Unggah file Outstanding record dulu.'}else if(tab==='red'){const t=hasNum('tot_f');n=a+e+t;tot=3;hint=a&&e&&t?'Siap! Tekan Hitung & Unduh Outstanding Terbaru.':a&&e?'Terakhir, isi total qty Outstanding setelah pengurangan.':a?'Sedikit lagi, tinggal unggah invoice.':'Yuk mulai! Unggah file Outstanding dulu.'}
+  if(tab==='red'&&redMode!=='fici'){const u=uniState();n=u[0]+u[1]+u[2]+u[3];tot=4;hint=u[2]&&u[3]?'Siap! Tekan Unduh Outstanding Terbaru.':u[2]?'Terakhir, isi total qty Outstanding setelah pengurangan.':u[1]?'Isi tanggal kirim untuk tiap ODID.':u[0]?'Sedikit lagi, tinggal unggah invoice / shipping list.':'Yuk mulai! Unggah file Outstanding record dulu.'}else if(tab==='red'){const t=hasNum('tot_f');n=a+e+t;tot=3;hint=a&&e&&t?'Siap! Tekan Hitung & Unduh Outstanding Terbaru.':a&&e?'Terakhir, isi total qty Outstanding setelah pengurangan.':a?'Sedikit lagi, tinggal unggah invoice.':'Yuk mulai! Unggah file Outstanding dulu.'}
   else{n=a+b+c+d;tot=4;hint=d&&c?'Selesai! SD Order siap diunduh. Kerja bagus!':d?'SD Order sudah dibuat, tapi ODID belum lengkap. Tambahkan nomor urut di belakang awalan.':(a&&b)?'Siap! Tekan Buat SD Order.':(a||b)?'Sedikit lagi, tinggal satu file.':'Yuk mulai! Unggah file Outstanding dulu.'}
   const pct=Math.round(n*100/tot);
   $('bar').style.width=pct+'%';$('pt').textContent='Progres: '+pct+'% ('+n+' dari '+tot+' langkah)';$('hint').textContent=hint;
@@ -1376,17 +1423,34 @@ function updRecent(){
 }
 const PAGES={sd:['Buat SD Order','Unggah Outstanding dan Shipping Plan, lalu unduh SD Order yang sudah jadi. File diproses di komputer Anda, tidak dikirim ke mana pun.'],
   red:['Kurangi Outstanding','Unggah Outstanding, invoice pengiriman dan total qty setelah pengurangan, lalu unduh Outstanding Terbaru lengkap dengan bukti pengurangan.'],
-  rep:['Laporan Invoice','Lihat data invoice yang tersimpan di Google Sheet, hapus baris yang salah, lalu unduh STO Report atau laporan bulanan.']};
+  rep:['Laporan Invoice','Lihat data invoice yang tersimpan di Google Sheet, hapus baris yang salah, lalu unduh STO Report atau laporan bulanan.'],
+  drv:['List Driver','Tambah driver baru dan hubungi langsung lewat WhatsApp. Data tersimpan otomatis di Google Sheet pada sheet data driver.']};
 function syncHead(v){
   let t,sub;
   if(v==='auth'){t='STO Hub';sub='Masuk untuk mulai. File diproses di komputer Anda, tidak dikirim ke mana pun.'}
   else if(v==='users'){t='Pengaturan';sub='Kelola permintaan daftar dan akses pengguna.'}
   else{t=PAGES[tab][0];sub=PAGES[tab][1]}
   $('ph_t').textContent=t;$('ph_s').textContent=sub;$('crumb').textContent=v==='auth'?'Masuk':t;
-  $('hintw').hidden=v!=='app'||tab==='rep';{const pg=document.querySelector('.topbar .prog');if(pg)pg.style.display=(v==='app'&&tab==='rep')?'none':''}
-  [['tab_sd','sd'],['tab_red','red'],['tab_rep','rep']].forEach(([id,k])=>{const on=v==='app'&&tab===k;$(id).classList.toggle('on',on);if(on)$(id).setAttribute('aria-current','page');else $(id).removeAttribute('aria-current')});
+  const noProg=v!=='app'||tab==='rep'||tab==='drv';
+  $('hintw').hidden=noProg;{const pg=document.querySelector('.topbar .prog');if(pg)pg.style.display=noProg?'none':''}
+  [['tab_sd','sd'],['tab_red','red'],['tab_rep','rep'],['tab_drv','drv']].forEach(([id,k])=>{const on=v==='app'&&tab===k;$(id).classList.toggle('on',on);if(on)$(id).setAttribute('aria-current','page');else $(id).removeAttribute('aria-current')});
 }
-function setTab(t){tab=t;try{sessionStorage.setItem('sto_tab',t)}catch(e){}$('p_sd').hidden=t!=='sd';$('p_red').hidden=t!=='red';$('p_rep').hidden=t!=='rep';view('app');prog();if(t==='rep')repOpen()}
+function setTab(t){
+  const prev=tab,cur=$('p_'+prev),appVis=!$('v_app').hidden;
+  clearTimeout(setTab._t);
+  ['p_sd','p_red','p_rep','p_drv'].forEach(id=>$(id).classList.remove('page-leave'));
+  const apply=()=>{
+    tab=t;try{sessionStorage.setItem('sto_tab',t)}catch(e){}
+    $('p_sd').hidden=t!=='sd';$('p_red').hidden=t!=='red';$('p_rep').hidden=t!=='rep';$('p_drv').hidden=t!=='drv';
+    const next=$('p_'+t);
+    next.style.animation='none';void next.offsetWidth;next.style.animation='';
+    view('app');prog();if(t==='rep')repOpen();else if(t==='drv')drvOpen();
+  };
+  if(appVis&&cur&&prev!==t){
+    cur.classList.add('page-leave');
+    setTab._t=setTimeout(()=>{cur.classList.remove('page-leave');apply()},160);
+  }else{apply()}
+}
 
 // ===== Kurangi Outstanding UNI & SCI =====
 // Aturan: cocokkan No. PO + Material code; nama barang harus sama; waybill yang sudah tercatat dilewati;
@@ -1400,8 +1464,8 @@ const uToday=()=>{const d=new Date();return d.getFullYear()+'-'+pad2(d.getMonth(
 async function uLoad(buf){const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);return wb}
 function uHead(ws){const m={};ws.getRow(1).eachCell({includeEmpty:false},(c,i)=>{const t=uNorm(uVal(c));if(t&&!(t in m))m[t]=i});return m}
 const uColL=n=>{let t='';while(n>0){const m=(n-1)%26;t=String.fromCharCode(65+m)+t;n=Math.floor((n-1)/26)}return t};
-function uGet(g){const w=document.querySelector('[data-ug="'+g.id+'"][data-k="wb"]'),d=document.querySelector('[data-ug="'+g.id+'"][data-k="dt"]');return {wb:w?w.value.trim():'',dt:d?d.value:''}}
-function uReady(){return U.groups.length>0&&U.groups.every(g=>{const i=uGet(g);return i.wb&&i.dt})}
+function uGet(g){const d=document.querySelector('[data-ug="'+g.id+'"][data-k="dt"]');return {wb:'',dt:d?d.value:''}}
+function uReady(){return U.groups.length>0&&U.groups.every(g=>{const i=uGet(g);return !!i.dt})}
 var redMode='fici';
 function setMode(m){
   const chg=m!==redMode;
@@ -1411,7 +1475,7 @@ function setMode(m){
   if(chg){const pe=m==='fici'?$('red_fici'):$('red_uni');pe.classList.remove('mswap');void pe.offsetWidth;pe.classList.add('mswap')}
   const n=m.toUpperCase();
   const lb=document.querySelector('label[for="fu_rec"]');if(lb)lb.textContent='File Outstanding Record '+n+' (.xlsx)';
-  $('ph_s').textContent=m==='fici'?PAGES.red[1]:'Unggah Outstanding Record '+n+' dan invoice / shipping list, isi waybill, tanggal kirim dan total qty setelah pengurangan, lalu unduh Outstanding Terbaru. File diproses di komputer Anda, tidak dikirim ke mana pun.';
+  $('ph_s').textContent=m==='fici'?PAGES.red[1]:'Unggah Outstanding Record '+n+' dan invoice / shipping list, isi tanggal kirim dan total qty setelah pengurangan, lalu unduh Outstanding Terbaru. File diproses di komputer Anda, tidak dikirim ke mana pun.';
   prog();
 }
 $('tot_f').oninput=()=>prog();$('tot_u').oninput=()=>uniRefresh();
@@ -1491,7 +1555,6 @@ $('fu_inv').onchange=async e=>{
   }catch(er){U.groups=[];$('u_grp').textContent='Muncul setelah invoice diunggah.';info.innerHTML='<span class="err">'+uEsc(er.message||er)+'</span>';uniRefresh();return}
   info.innerHTML='<span class="ok">✓ '+U.groups.length+' kelompok</span> ('+uFmt(U.groups.reduce((a,g)=>a+g.items.length,0))+' item)';
   $('u_grp').innerHTML=U.groups.map(g=>'<div style="border-top:1px solid var(--line,#e3e6ee);padding:8px 0"><div>'+uEsc(g.label)+'</div><div class="f">'+g.items.length+' item · total qty '+uFmt(g.items.reduce((a,b)=>a+b.qty,0))+'</div>'+
-    '<input type="text" data-ug="'+g.id+'" data-k="wb" value="'+uEsc(g.wb)+'" placeholder="No. waybill, mis. PA2611250001" style="width:100%;margin-top:6px;box-sizing:border-box">'+
     '<input type="date" data-ug="'+g.id+'" data-k="dt" value="'+(g.dt||uToday())+'" style="width:100%;margin-top:6px;box-sizing:border-box"></div>').join('');
   document.querySelectorAll('#u_grp input').forEach(i=>i.oninput=uniRefresh);
   uniRefresh();
@@ -1508,16 +1571,16 @@ function uniRefresh(){
       if(!row){log.push({...b,st:'err',note:'Tidak ada di outstanding record'});continue}
       const before=row.q-row.shipped;
       if(row.cancel){log.push({...b,st:'err',before:0,note:'PO berstatus CANCEL di outstanding record'});continue}
-      if(!ready){log.push({...b,st:'skip',before,note:'Lengkapi waybill dan tanggal'});continue}
+      if(!ready){log.push({...b,st:'skip',before,note:'Lengkapi tanggal kirim'});continue}
       if(it.pd&&row.date&&it.pd!==row.date){log.push({...b,st:'err',before,note:'Tanggal PO berbeda (file '+it.pd+', record '+row.date+')'});continue}
       if(!nameOK(it.gn,row.gn)){log.push({...b,st:'err',before,note:'Nama barang berbeda dengan Goodsname outstanding record'});continue}
       const t=touched.get(it.key)||{shipped:row.shipped,free:[...row.free],wbs:new Set(row.wbs)},wk=uNorm(inp.wb),left=row.q-t.shipped;
-      if(t.wbs.has(wk)){log.push({...b,st:'skip',before:left,after:left,note:'Waybill ini sudah tercatat, dilewati'});continue}
+      if(wk&&t.wbs.has(wk)){log.push({...b,st:'skip',before:left,after:left,note:'Waybill ini sudah tercatat, dilewati'});continue}
       if(it.qty>left){log.push({...b,st:'err',before:left,note:'Qty melebihi sisa PO ('+uFmt(left)+')'});continue}
       if(!t.free.length){log.push({...b,st:'err',before:left,note:'Slot pengiriman penuh'});continue}
-      const slot=t.free.shift();t.shipped+=it.qty;t.wbs.add(wk);touched.set(it.key,t);
+      const slot=t.free.shift();t.shipped+=it.qty;if(wk)t.wbs.add(wk);touched.set(it.key,t);
       actions.push({r:row.r,g:g.id,slot,wb:inp.wb,dt:inp.dt,qty:it.qty,q:row.q,t});applied+=it.qty;
-      log.push({...b,st:'ok',before:left,after:left-it.qty,note:'Slot '+(slot+1)+' · waybill '+inp.wb});
+      log.push({...b,st:'ok',before:left,after:left-it.qty,note:'Slot '+(slot+1)+' · tgl '+inp.dt});
     }
   }
   U.plan={actions,log,applied,after:U.rec.total-applied};
@@ -1900,7 +1963,9 @@ async function uDl(force){
   const P=U.plan;if(!P||!P.actions.length)return;
   if(!force){const w=Number($('tot_u').value);if(!totOK(P.after,w)){$('msgu').innerHTML=totBlock(P.after,w)+'<button id="forceu" type="button" class="g">Tetap unduh</button>';$('forceu').onclick=()=>uDl(true);return}}
   const gs=[...new Set(P.actions.map(a=>a.g))].map(id=>U.groups.find(g=>g.id===id)).filter(Boolean);
-  const list=gs.map(g=>{const i=uGet(g);return {no:i.wb,tgl:i.dt,lines:g.items.map(it=>({po:it.po,mat:it.mc,item:it.gn,q:it.qty,amt:it.amt||0,lot:/^SD/i.test(String(g.od||''))?String(g.od):''}))}});
+  const withWb=gs.filter(g=>uGet(g).wb);
+  if(!withWb.length){await uBuild();return}
+  const list=withWb.map(g=>{const i=uGet(g);return {no:i.wb,tgl:i.dt,lines:g.items.map(it=>({po:it.po,mat:it.mc,item:it.gn,q:it.qty,amt:it.amt||0,lot:/^SD/i.test(String(g.od||''))?String(g.od):''}))}});
   await invGuard(redMode==='sci'?'sci':'uni',list,uBuild,'msgu');
 }
 async function uBuild(){
@@ -1911,7 +1976,7 @@ async function uBuild(){
     P.actions.forEach(a=>byRow.set(a.r,{t:a.t,q:a.q}));
     for(const a of P.actions){
       const s=U.rec.slots[a.slot];
-      ws.getCell(a.r,s.w).value=a.wb;
+      if(a.wb)ws.getCell(a.r,s.w).value=a.wb;
       const dc=ws.getCell(a.r,s.d),[y,m,d]=a.dt.split('-').map(Number);
       dc.value=new Date(Date.UTC(y,m-1,d));
       if(!dc.numFmt||dc.numFmt==='General')dc.numFmt='dd/mm/yyyy';
@@ -1927,7 +1992,94 @@ async function uBuild(){
   btn.disabled=false;return ok;
 }
 
-$('tab_sd').onclick=()=>setTab('sd');$('tab_red').onclick=()=>setTab('red');$('tab_rep').onclick=()=>setTab('rep');
+$('tab_sd').onclick=()=>setTab('sd');$('tab_red').onclick=()=>setTab('red');$('tab_rep').onclick=()=>setTab('rep');$('tab_drv').onclick=()=>setTab('drv');
+
+// ===== List Driver (Google Sheet: sheet "data driver") =====
+const DRV={rows:[],loaded:false,q:''};
+function drvWa(raw){
+  let d=String(raw==null?'':raw).replace(/\D/g,'');
+  if(!d)return '';
+  if(d.startsWith('0'))d='62'+d.slice(1);
+  else if(d.startsWith('8'))d='62'+d;
+  return d;
+}
+function drvDispPhone(raw){
+  const s=String(raw==null?'':raw).trim();
+  if(!s)return '-';
+  const d=drvWa(s);
+  return d&&d.startsWith('62')?'+'+d:s;
+}
+async function drvOpen(){
+  if(!DRV.loaded)await drvLoad();
+  else drvRender();
+}
+async function drvLoad(){
+  const list=$('drv_list'),msg=$('drv_msg');
+  list.innerHTML='<div class="f">Memuat daftar driver dari sheet data driver…</div>';
+  try{
+    const j=await api('driver_list',{sheet:'data driver'});
+    DRV.rows=(j.drivers||j.rows||[]).map((r,idx)=>Array.isArray(r)?{id:r[0]||idx+1,nama:String(r[1]||''),telp:String(r[2]||''),tgl:String(r[3]||'')}:{id:r.id||r.rid||idx+1,nama:String(r.nama||r.name||''),telp:String(r.telp||r.phone||r.wa||''),tgl:String(r.tgl||r.created||'')}).filter(x=>x.nama||x.telp);
+    DRV.loaded=true;
+    drvRender();
+  }catch(er){
+    if(er.auth)return kick(er.message);
+    list.innerHTML='<div class="err">Gagal memuat data driver: '+esc(er.message)+'</div>';
+    if(msg)msg.innerHTML='';
+  }
+}
+function drvRender(){
+  const q=DRV.q.toLowerCase().trim();
+  const rows=DRV.rows.filter(d=>!q||d.nama.toLowerCase().includes(q)||d.telp.toLowerCase().includes(q)||drvWa(d.telp).includes(q));
+  $('drv_cnt').textContent=DRV.rows.length;
+  const box=$('drv_list');
+  if(!rows.length){
+    box.innerHTML='<div class="f">'+(DRV.rows.length?'Tidak ada driver yang cocok dengan pencarian.':'Belum ada data driver di sheet data driver.')+'</div>';
+    return;
+  }
+  box.innerHTML=rows.map(d=>{
+    const wa=drvWa(d.telp);
+    const waUrl=wa?'https://wa.me/'+wa+'?text='+encodeURIComponent('Halo Pak/Bu '+d.nama+', '):'#';
+    return '<div class="drv-item"><div><b>'+esc(d.nama||'-')+'</b><div class="f">'+esc(drvDispPhone(d.telp))+(d.tgl?' · Ditambahkan '+esc(d.tgl):'')+'</div></div>'+
+      '<div class="drv-act">'+(wa?'<a class="wa" href="'+waUrl+'" target="_blank" rel="noopener">Hubungi WA</a>':'')+
+      (isAdm()?'<button type="button" class="dg" data-drv-del="'+esc(d.id)+'" data-drv-nm="'+esc(d.nama)+'">Hapus</button>':'')+'</div></div>';
+  }).join('');
+}
+$('f_drv').onsubmit=async e=>{
+  e.preventDefault();
+  const nama=$('drv_name').value.trim(),rawTelp=$('drv_phone').value.trim(),wa=drvWa(rawTelp);
+  const btn=$('drv_add'),msg=$('drv_msg');
+  if(!nama){msg.innerHTML='<span class="err">Nama driver wajib diisi.</span>';return}
+  if(wa.length<9||wa.length>15){msg.innerHTML='<span class="err">Nomor telepon tidak valid (minimal 9 digit).</span>';return}
+  btn.disabled=true;msg.textContent='Menyimpan ke sheet data driver…';
+  try{
+    await api('driver_add',{sheet:'data driver',nama,telp:wa});
+    $('drv_name').value='';$('drv_phone').value='';
+    msg.innerHTML='<span class="ok">✓ Driver <b>'+esc(nama)+'</b> berhasil disimpan ke sheet data driver.</span>';
+    await drvLoad();
+  }catch(er){
+    if(er.auth)return kick(er.message);
+    msg.innerHTML='<span class="err">Gagal menyimpan: '+esc(er.message)+'</span>';
+  }
+  btn.disabled=false;
+};
+$('drv_q').oninput=e=>{DRV.q=e.target.value;drvRender()};
+$('drv_reload').onclick=()=>drvLoad();
+$('drv_list').addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-drv-del]');if(!b)return;
+  const id=b.dataset.drvDel,nm=b.dataset.drvNm;
+  if(!confirm('Hapus driver "'+nm+'" dari sheet data driver?'))return;
+  b.disabled=true;
+  try{
+    await api('driver_del',{sheet:'data driver',id});
+    $('drv_msg').innerHTML='<span class="ok">✓ Driver <b>'+esc(nm)+'</b> dihapus.</span>';
+    await drvLoad();
+  }catch(er){
+    if(er.auth)return kick(er.message);
+    $('drv_msg').innerHTML='<span class="err">Gagal menghapus: '+esc(er.message)+'</span>';
+    b.disabled=false;
+  }
+});
+
 /* ---- Menu strip 3 ---- */
 function menuOpen(o){const d=$('menudrop'),sc=$('scrim');clearTimeout(menuOpen.t);$('burger').setAttribute('aria-expanded',o);document.body.style.overflow=o?'hidden':'';
   if(o){d.classList.remove('out');sc.classList.remove('out');d.hidden=false;sc.hidden=false}
@@ -1965,10 +2117,21 @@ function logEv(ev,n){
 }
 
 function view(v){
-  ['auth','app','users'].forEach(x=>$('v_'+x).hidden=x!==v);
-  document.body.classList.toggle('in',v!=='auth');
-  $('tools').hidden=v==='auth';$('gear').classList.toggle('on',v==='users');$('tab_set').classList.toggle('on',v==='users');
-  syncHead(v);
+  const cur=['auth','app','users'].find(x=>!$('v_'+x).hidden);
+  clearTimeout(view._t);
+  ['auth','app','users'].forEach(x=>$('v_'+x).classList.remove('page-leave'));
+  const apply=()=>{
+    ['auth','app','users'].forEach(x=>$('v_'+x).hidden=x!==v);
+    const next=$('v_'+v);
+    if(next&&cur&&cur!==v){next.style.animation='none';void next.offsetWidth;next.style.animation=''}
+    document.body.classList.toggle('in',v!=='auth');
+    $('tools').hidden=v==='auth';$('gear').classList.toggle('on',v==='users');$('tab_set').classList.toggle('on',v==='users');
+    syncHead(v);
+  };
+  if(cur&&cur!==v){
+    $('v_'+cur).classList.add('page-leave');
+    view._t=setTimeout(()=>{$('v_'+cur).classList.remove('page-leave');apply()},160);
+  }else{apply()}
 }
 function enter(u){
   me=u;$('who').textContent=u.username+(u.role==='admin'?' (master)':'');
@@ -2166,7 +2329,7 @@ $('v_users').addEventListener('click',async e=>{
   try{
     const t=sessionStorage.getItem('sto_tab'),m=sessionStorage.getItem('sto_mode');
     if(m==='sci'||m==='uni')setMode(m);
-    if(t==='red')setTab('red');else if(t==='rep')setTab('rep');
+    if(t==='red')setTab('red');else if(t==='rep')setTab('rep');else if(t==='drv')setTab('drv');
   }catch(e){}
 })();
 $('od').addEventListener('input',prog);$('od').addEventListener('blur',prog);prog();
