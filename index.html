@@ -1163,18 +1163,36 @@ function buildOutstanding(){
   XLSX.utils.book_append_sheet(wb,s1,'Outstanding Terbaru');XLSX.utils.book_append_sheet(wb,s2,'Pengurangan Invoice');
   return {wb,log,red,total,invs};
 }
-$('dlo').onclick=()=>{
+$('dlo').onclick=async()=>{
+  const btn=$('dlo');btn.disabled=true;$('out2').innerHTML='';
   try{
+    setDlProg('msg2',10,'Menghitung pengurangan invoice & sisa Outstanding');
+    await uTick();
     const r=buildOutstanding();
+    setDlProg('msg2',45,'Menyusun ringkasan & tabel log pengurangan');
+    await uTick();
     const pot=r.log.filter(l=>!l.bad&&!l.skip).reduce((a,l)=>a+l.q,0),bad=r.log.filter(l=>l.bad),skp=r.log.filter(l=>l.skip),sfx=r.log.filter(l=>/^Material dicocokkan/.test(l.note||''));
-    const want=Number($('tot_f').value),dl2=()=>invGuard(data.fmt==='uni'?'uni':'fici',r.invs.map(v=>({no:v.no,tgl:v.tgl,lines:v.lines})),async()=>saveWB(r.wb,'OUTSTANDING_TERBARU','xlsx','xlsx','msg2'),'msg2');
-    if(totOK(r.total,want))dl2();
-    else{$('msg2').innerHTML=totBlock(r.total,want)+'<button id="force2" type="button" class="g">Tetap unduh</button>';$('force2').onclick=dl2}
+    const want=Number($('tot_f').value);
+    const runDl=async()=>{
+      setDlProg('msg2',75,'Membuat berkas OUTSTANDING_TERBARU.xlsx');
+      await uTick();
+      const ok=saveWB(r.wb,'OUTSTANDING_TERBARU','xlsx','xlsx','msg2');
+      if(ok)setDlProg('msg2',100,'Selesai! File OUTSTANDING_TERBARU.xlsx diunduh','ok');
+      return ok;
+    };
+    const dl2=()=>invGuard(data.fmt==='uni'?'uni':'fici',r.invs.map(v=>({no:v.no,tgl:v.tgl,lines:v.lines})),runDl,'msg2');
     $('out2').innerHTML='<div class="card"><b>'+r.red.size+' baris Outstanding</b> dikurangi, total <b>'+pot.toLocaleString('id-ID')+' pcs</b> dari '+data.inv.length+' invoice.<br>'+
       (sfx.length?'<span class="warn">'+sfx.length+' baris invoice memakai material code tanpa akhiran -N dibanding Outstanding, cek invoicenya (tanda kuning di bawah)</span><br>':'')+(skp.length?'<span class="ok">'+skp.length+' baris invoice sudah tercatat di file Outstanding (FICI), jadi tidak dikurangi lagi</span><br>':'')+(bad.length?'<span class="warn">'+bad.length+' baris invoice tidak terpotong penuh, lihat tanda kuning di bawah</span>':(skp.length&&!pot?'':'<span class="ok">Semua baris invoice berhasil diproses</span>'))+'<br>'+totLine(r.total,want)+'</div>'+
       '<div class="card sc scl"><table><tr><th>Invoice</th><th>Tgl kirim</th><th>PO</th><th>Material</th><th class="n">Qty</th><th class="n">Baris</th><th class="n">Sisa sebelum</th><th class="n">Sisa sesudah</th><th>Catatan</th></tr>'+
       r.log.map(l=>'<tr><td>'+l.inv+'</td><td>'+l.tgl+'</td><td>'+l.po+'</td><td>'+l.mat+'</td><td class="n">'+l.q+'</td><td class="n">'+l.row+'</td><td class="n">'+l.before+'</td><td class="n">'+l.after+'</td><td'+(l.bad||/^Material dicocokkan/.test(l.note||'')?' class="bad"':'')+'>'+(l.note||'')+'</td></tr>').join('')+'</table></div>';
-  }catch(e){$('msg2').innerHTML='<span class="err">Gagal membuat Outstanding Terbaru: '+((e&&e.message)||e)+'</span>'}
+    if(totOK(r.total,want))await dl2();
+    else{
+      setDlProg('msg2',60,'Menunggu konfirmasi selisih total','warn');
+      $('msg2').insertAdjacentHTML('beforeend','<br>'+totBlock(r.total,want)+'<button id="force2" type="button" class="g">Tetap unduh</button>');
+      $('force2').onclick=dl2;
+    }
+  }catch(e){$('msg2').innerHTML='<span class="err">Gagal membuat Outstanding Terbaru: '+uEsc((e&&e.message)||e)+'</span>'}
+  finally{btn.disabled=!(data.o&&data.inv.length&&hasNum('tot_f'))}
 };
 
 function build(){
@@ -1621,19 +1639,41 @@ function invPrepare(co,list){
   });
   return {ok:[...map.values()].sort(invCmp),errors};
 }
+function setDlProg(mid,pct,label,cls){
+  const p=Math.max(0,Math.min(100,Math.round(pct)));
+  if($('bar'))$('bar').style.width=p+'%';
+  if($('pt'))$('pt').textContent='Progres unduh: '+p+'%';
+  const el=$(mid);
+  if(el)el.innerHTML='<span class="'+(cls||'')+'">'+uEsc(label)+' — <b>'+p+'%</b></span>';
+}
 async function invGuard(co,list,run,mid){
   const el=$(mid),P=invPrepare(co,list);let dups=[],note='';
-  if(P.ok.length){try{dups=(await api('inv_check',{company:co,ids:P.ok.map(e=>e.id)})).dups||[]}catch(e){note='Tidak bisa mengecek ke Google Sheet: '+((e&&e.message)||e)}}
+  if(P.ok.length){
+    setDlProg(mid,15,'Mengecek duplikat invoice di Google Sheet');
+    await uTick();
+    try{dups=(await api('inv_check',{company:co,ids:P.ok.map(e=>e.id)})).dups||[]}catch(e){note='Tidak bisa mengecek ke Google Sheet: '+((e&&e.message)||e)}
+  }
   const probs=P.errors.map(uEsc);
   dups.forEach(id=>probs.push(uEsc(id)+' sudah tersimpan di sheet '+co.toUpperCase()+' (invoice dobel)'));
   if(note)probs.push(uEsc(note));
   if(probs.length){
+    setDlProg(mid,25,'Ditemukan catatan pada invoice','err');
     el.innerHTML='<span class="err">Ada masalah pada invoice, file belum diunduh:</span><br>'+probs.map(x=>'<span class="err">• '+x+'</span>').join('<br>')+'<br><button id="invforce" type="button" class="g">Tetap unduh (invoice bermasalah tidak disimpan)</button>';
-    $('invforce').onclick=async()=>{const ok=await run();if(ok!==false)await invSave(co,P.ok.filter(e=>!dups.includes(e.id)),mid)};
+    $('invforce').onclick=async()=>{const ok=await run();if(ok!==false){setDlProg(mid,95,'Menyimpan invoice valid ke Google Sheet','ok');await invSave(co,P.ok.filter(e=>!dups.includes(e.id)),mid);setDlProg(mid,100,'Selesai! File diunduh & invoice tersimpan','ok')}};
     return;
   }
   const ok=await run();
-  if(ok!==false)await invSave(co,P.ok,mid);
+  if(ok!==false&&P.ok.length){
+    const prev=el?el.innerHTML:'';
+    setDlProg(mid,95,'Menyimpan '+P.ok.length+' invoice ke Google Sheet','ok');
+    await invSave(co,P.ok,mid);
+    if(el){
+      const extra=el.innerHTML.replace(/^<span[^>]*>Menyimpan[\s\S]*?<\/span>/,'');
+      el.innerHTML=prev+extra;
+    }
+    if($('bar'))$('bar').style.width='100%';
+    if($('pt'))$('pt').textContent='Progres unduh: 100%';
+  }
 }
 async function invSave(co,ents,mid){
   if(!ents.length)return;const el=$(mid),add=h=>{el.insertAdjacentHTML('beforeend','<br>'+h)};
@@ -1969,25 +2009,43 @@ async function uDl(force){
   await invGuard(redMode==='sci'?'sci':'uni',list,uBuild,'msgu');
 }
 async function uBuild(){
-  const P=U.plan,btn=$('dlu'),msg=$('msgu');btn.disabled=true;msg.textContent='Menyiapkan file, mohon tunggu…';
+  const P=U.plan,btn=$('dlu'),msg=$('msgu');btn.disabled=true;
+  setDlProg('msgu',25,'Memuat workbook record');
+  await uTick();
   let ok=false;
   try{
     const wb=await uLoad(U.rec.buf),ws=wb.getWorksheet(U.rec.sheet),byRow=new Map();
+    setDlProg('msgu',50,'Mengisi tanggal kirim & qty ke '+P.actions.length+' baris');
+    await uTick();
     P.actions.forEach(a=>byRow.set(a.r,{t:a.t,q:a.q}));
-    for(const a of P.actions){
-      const s=U.rec.slots[a.slot];
+    const totAct=P.actions.length||1;
+    for(let idx=0;idx<P.actions.length;idx++){
+      const a=P.actions[idx],s=U.rec.slots[a.slot];
       if(a.wb)ws.getCell(a.r,s.w).value=a.wb;
       const dc=ws.getCell(a.r,s.d),[y,m,d]=a.dt.split('-').map(Number);
       dc.value=new Date(Date.UTC(y,m-1,d));
       if(!dc.numFmt||dc.numFmt==='General')dc.numFmt='dd/mm/yyyy';
       ws.getCell(a.r,s.q).value=a.qty;
+      if(idx>0&&idx%250===0){
+        setDlProg('msgu',50+Math.round((idx/totAct)*20),'Mengisi baris '+idx+' / '+totAct);
+        await uTick();
+      }
     }
-    if(U.rec.cols.out)byRow.forEach((v,r)=>{
-      const f=uColL(U.rec.cols.qty)+r+U.rec.slots.map(s=>'-'+uColL(s.q)+r).join('');
-      ws.getCell(r,U.rec.cols.out).value={formula:f,result:v.q-v.t.shipped}});
+    if(U.rec.cols.out){
+      const slotCols=U.rec.slots.map(s=>uColL(s.q)),qtyCol=uColL(U.rec.cols.qty);
+      byRow.forEach((v,r)=>{
+        const f=qtyCol+r+slotCols.map(c=>'-'+c+r).join('');
+        ws.getCell(r,U.rec.cols.out).value={formula:f,result:v.q-v.t.shipped};
+      });
+    }
     wb.calcProperties={fullCalcOnLoad:true};
+    setDlProg('msgu',75,'Menyusun & mengompres file XLSX (mohon tunggu)');
+    await uTick();
     const buf=await wb.xlsx.writeBuffer();
-    saveBytes(new Uint8Array(buf),U.rec.name.replace(/\.xlsx$/i,'')+'_updated','xlsx','msgu');ok=true;
+    const outName=U.rec.name.replace(/\.xlsx$/i,'')+'_updated';
+    saveBytes(new Uint8Array(buf),outName,'xlsx','msgu');
+    setDlProg('msgu',100,'Selesai! File '+outName+'.xlsx diunduh','ok');
+    ok=true;
   }catch(er){msg.innerHTML='<span class="err">Gagal: '+uEsc((er&&er.message)||er)+'</span>'}
   btn.disabled=false;return ok;
 }
