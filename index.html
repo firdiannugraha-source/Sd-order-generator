@@ -781,6 +781,17 @@ main.stage{padding-top:20px}
 #boot small{color:var(--mut);font-size:13px;line-height:1.4;text-align:center;max-width:280px;min-height:1.4em}
 @keyframes bspin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){#boot .sp{animation-duration:2.4s}}
+
+/* ===== Halaman daftar driver ===== */
+.drv-pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin-top:16px}
+.drv-pager[hidden]{display:none}
+.drv-pinfo{font-size:13px;color:var(--mut);font-weight:600}
+.drv-pbtns{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.drv-pbtns button{margin:0;padding:8px 14px;font-size:13px;min-width:38px}
+.drv-pbtns button.pn.on,.drv-pbtns button.pn.on:hover:not(:disabled){background:var(--lime);color:#1d1d19;border-color:transparent;font-weight:800}
+.drv-pbtns button:disabled{opacity:.4;cursor:default}
+.drv-dots{color:var(--mut);padding:0 2px}
+@media (max-width:520px){.drv-pager{justify-content:center}.drv-pinfo{width:100%;text-align:center}.drv-pbtns{justify-content:center}}
 </style>
 </head>
 <body>
@@ -946,6 +957,7 @@ main.stage{padding-top:20px}
 </div>
 </div>
 <div id="drv_list" class="drv-list"><div class="f">Memuat daftar driver…</div></div>
+<nav id="drv_pager" class="drv-pager" aria-label="Halaman daftar driver" hidden></nav>
 </div>
 </div>
 </div>
@@ -2301,7 +2313,7 @@ async function uBuild(){
 $('tab_sd').onclick=()=>setTab('sd');$('tab_red').onclick=()=>setTab('red');$('tab_rep').onclick=()=>setTab('rep');$('tab_drv').onclick=()=>setTab('drv');
 
 // ===== List Driver (Google Sheet: sheet "data driver") =====
-const DRV={rows:[],loaded:false,q:''};
+const DRV={rows:[],loaded:false,q:'',page:1,per:10};
 function drvWa(raw){
   let d=String(raw==null?'':raw).replace(/\D/g,'');
   if(!d)return '';
@@ -2337,18 +2349,32 @@ function drvRender(){
   const q=DRV.q.toLowerCase().trim();
   const rows=DRV.rows.filter(d=>!q||d.nama.toLowerCase().includes(q)||d.telp.toLowerCase().includes(q)||drvWa(d.telp).includes(q)).sort((x,y)=>(x.nama||'').trim().localeCompare((y.nama||'').trim(),'id',{sensitivity:'base',numeric:true}));
   $('drv_cnt').textContent=DRV.rows.length;
-  const box=$('drv_list');
+  const box=$('drv_list'),pg=$('drv_pager');
   if(!rows.length){
+    pg.hidden=true;pg.innerHTML='';
     box.innerHTML='<div class="f">'+(DRV.rows.length?'Tidak ada driver yang cocok dengan pencarian.':'Belum ada data driver di sheet data driver.')+'</div>';
     return;
   }
-  box.innerHTML=rows.map(d=>{
+  const pages=Math.ceil(rows.length/DRV.per);
+  DRV.page=Math.min(Math.max(1,DRV.page),pages);
+  const from=(DRV.page-1)*DRV.per,show=rows.slice(from,from+DRV.per);
+  box.innerHTML=show.map(d=>{
     const wa=drvWa(d.telp);
     const waUrl=wa?'https://wa.me/'+wa:'#';
     return '<div class="drv-item"><div><b>'+esc(d.nama||'-')+'</b><div class="f">'+esc(drvDispPhone(d.telp))+(d.tgl?' · Ditambahkan '+esc(d.tgl):'')+'</div></div>'+
       '<div class="drv-act">'+(wa?'<a class="wa" href="'+waUrl+'" target="_blank" rel="noopener">Hubungi WA</a>':'')+
       (isAdm()?'<button type="button" class="dg" data-drv-del="'+esc(d.id)+'" data-drv-nm="'+esc(d.nama)+'">Hapus</button>':'')+'</div></div>';
   }).join('');
+  if(pages<=1){pg.hidden=true;pg.innerHTML='';return}
+  const nums=[];for(let i=1;i<=pages;i++)if(i===1||i===pages||Math.abs(i-DRV.page)<=1)nums.push(i);
+  let h='<span class="drv-pinfo">'+(from+1)+'–'+(from+show.length)+' dari '+rows.length+' driver</span><span class="drv-pbtns">';
+  h+='<button type="button" class="g" data-pg="'+(DRV.page-1)+'"'+(DRV.page===1?' disabled':'')+' aria-label="Halaman sebelumnya">Sebelumnya</button>';
+  nums.forEach((n,i)=>{
+    if(i&&n-nums[i-1]>1)h+='<span class="drv-dots" aria-hidden="true">…</span>';
+    h+='<button type="button" class="g pn'+(n===DRV.page?' on':'')+'" data-pg="'+n+'"'+(n===DRV.page?' aria-current="page"':'')+' aria-label="Halaman '+n+'">'+n+'</button>';
+  });
+  h+='<button type="button" class="g" data-pg="'+(DRV.page+1)+'"'+(DRV.page===pages?' disabled':'')+' aria-label="Halaman berikutnya">Berikutnya</button></span>';
+  pg.innerHTML=h;pg.hidden=false;
 }
 $('f_drv').onsubmit=async e=>{
   e.preventDefault();
@@ -2368,7 +2394,12 @@ $('f_drv').onsubmit=async e=>{
   }
   btn.disabled=false;
 };
-$('drv_q').oninput=e=>{DRV.q=e.target.value;drvRender()};
+$('drv_q').oninput=e=>{DRV.q=e.target.value;DRV.page=1;drvRender()};
+$('drv_pager').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-pg]');if(!b||b.disabled)return;
+  DRV.page=+b.dataset.pg;drvRender();
+  $('drv_list').scrollIntoView({behavior:'smooth',block:'start'});
+});
 $('drv_reload').onclick=()=>drvLoad();
 $('drv_list').addEventListener('click',async e=>{
   const b=e.target.closest('button[data-drv-del]');if(!b)return;
