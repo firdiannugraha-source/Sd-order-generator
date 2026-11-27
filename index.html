@@ -771,9 +771,21 @@ main.stage{padding-top:20px}
   .phr{margin-left:0;width:100%;justify-content:flex-start}
 }
 @media (max-width:360px){.nav .brand small{display:none}}
+
+/* ===== Layar muat awal: tidak ada lagi halaman setengah jadi saat server masih menjawab ===== */
+#boot{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;background:var(--bg);color:var(--fg);transition:opacity .25s ease}
+#boot.gone{opacity:0;pointer-events:none}
+#boot .lg{width:64px;height:64px}
+#boot b{font:800 24px/1 "Manrope",sans-serif;letter-spacing:-.02em}
+#boot .sp{width:26px;height:26px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--lime);animation:bspin .8s linear infinite}
+#boot small{color:var(--mut);font-size:13px;line-height:1.4;text-align:center;max-width:280px;min-height:1.4em}
+@keyframes bspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#boot .sp{animation-duration:2.4s}}
 </style>
 </head>
 <body>
+<script>try{if(localStorage.getItem('sto_dark')==='1')document.body.classList.add('dark')}catch(e){}</script>
+<div id="boot" role="status" aria-live="polite"><svg class="lg" viewBox="0 0 100 100" aria-hidden="true"><use href="#stoLogo"/></svg><b>STO Hub</b><div class="sp" aria-hidden="true"></div><small id="boot_t">Memuat…</small></div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="stoLogo" viewBox="0 0 100 100"><rect width="100" height="100" rx="28" fill="#e9f04b"/><path d="M20 40 44 30 68 40 44 51Z" fill="#2a2a26"/><path d="M20 40 44 51V82L20 70Z" fill="#2a2a26"/><path d="M44 51 68 40V70L44 82Z" fill="#2a2a26"/><path d="M20 40 44 51 68 40M44 51V82" fill="none" stroke="#e9f04b" stroke-width="2.4" stroke-linejoin="round"/><path d="M30 37.5 50 46.5M36 35 56 44" stroke="#e9f04b" stroke-width="2.6" stroke-linecap="round"/><path d="M66 14 69 23M75 22 83 18" stroke="#2a2a26" stroke-width="4" stroke-linecap="round"/><circle cx="70" cy="72" r="17" fill="#f8f4e6"/><path d="M62 72.5 68.5 79 79 65.5" fill="none" stroke="#2a2a26" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></symbol></defs></svg>
 <div class="frame"><div class="shell">
 <aside class="nav" id="nav">
@@ -2394,7 +2406,7 @@ const API_URL='https://script.google.com/macros/s/AKfycbyBA17V2i3VmFx6ffHJ7iDH6R
 const ADMIN_WA='6289621154915';
 let me=null;const BASE=document.title;
 const tok=()=>{try{return localStorage.getItem('sdtok')||''}catch(e){return ''}};
-const setTok=v=>{try{v?localStorage.setItem('sdtok',v):localStorage.removeItem('sdtok')}catch(e){}};
+const setTok=v=>{try{if(v)localStorage.setItem('sdtok',v);else{localStorage.removeItem('sdtok');localStorage.removeItem('sto_cu')}}catch(e){}};
 const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 async function api(action,p,ms){
@@ -2410,6 +2422,9 @@ function logEv(ev,n){
   try{fetch(API_URL,{method:'POST',keepalive:true,body:JSON.stringify({action:'log',token:tok(),ev,n:n||''})})}catch(e){}
 }
 
+function bootDone(){const b=document.getElementById('boot');if(!b||b.classList.contains('gone'))return;b.classList.add('gone');setTimeout(()=>b.remove(),400)}
+setTimeout(()=>{const t=document.getElementById('boot_t');if(t)t.textContent='Menghubungkan ke server… bisa lebih lama kalau server baru aktif.'},5000);
+setTimeout(()=>{if(document.getElementById('boot'))view('auth')},75000);
 function view(v){
   const cur=['auth','app','users'].find(x=>!$('v_'+x).hidden);
   clearTimeout(view._t);
@@ -2420,7 +2435,7 @@ function view(v){
     if(next&&cur&&cur!==v){next.style.animation='none';void next.offsetWidth;next.style.animation=''}
     document.body.classList.toggle('in',v!=='auth');
     $('tools').hidden=v==='auth';$('gear').classList.toggle('on',v==='users');$('tab_set').classList.toggle('on',v==='users');
-    syncHead(v);
+    syncHead(v);bootDone();
   };
   if(cur&&cur!==v){
     $('v_'+cur).classList.add('page-leave');
@@ -2428,7 +2443,8 @@ function view(v){
   }else{apply()}
 }
 function enter(u){
-  me=u;$('who').textContent=u.username+(u.role==='admin'?' (master)':'');
+  me=u;try{localStorage.setItem('sto_cu',JSON.stringify({username:u.username,role:u.role}))}catch(e){}
+  $('who').textContent=u.username+(u.role==='admin'?' (master)':'');
   $('gear').hidden=u.role!=='admin';$('tab_set').hidden=u.role!=='admin';
   view('app');
   if(u.role==='admin')refreshUsers(true);
@@ -2609,22 +2625,37 @@ $('v_users').addEventListener('click',async e=>{
 (async()=>{
   if(!API_URL){view('auth');$('amsg').innerHTML='<span class="warn">Server belum disambungkan. Isi API_URL di file HTML (lihat panduan pemasangan).</span>';return}
   if(!tok()){view('auth');return}
-  let u=null,err=null;
-  for(let i=0;i<2&&!u;i++){
-    try{u=(await api('me')).user}catch(e){err=e;if(e.auth)break;await new Promise(r=>setTimeout(r,1500))}
+  const restore=()=>{try{
+    const t=sessionStorage.getItem('sto_tab'),m=sessionStorage.getItem('sto_mode');
+    if(m==='sci'||m==='uni')setMode(m);
+    if(t==='red')setTab('red');else if(t==='rep')setTab('rep');else if(t==='drv')setTab('drv');
+  }catch(e){}};
+  const ask=async()=>{let u=null,err=null;
+    for(let i=0;i<2&&!u;i++){
+      try{u=(await api('me')).user}catch(e){err=e;if(e.auth)break;await new Promise(r=>setTimeout(r,1500))}
+    }
+    return {u,err}};
+  let cu=null;try{cu=JSON.parse(localStorage.getItem('sto_cu')||'null')}catch(e){}
+  if(cu&&cu.username&&cu.role){
+    // sudah pernah masuk: tampilkan aplikasi langsung, cek sesi ke server di latar belakang
+    enter(cu);restore();
+    const {u,err}=await ask();
+    if(u){
+      me=u;try{localStorage.setItem('sto_cu',JSON.stringify({username:u.username,role:u.role}))}catch(e){}
+      $('who').textContent=u.username+(u.role==='admin'?' (master)':'');
+      $('gear').hidden=u.role!=='admin';$('tab_set').hidden=u.role!=='admin';
+      if(u.role!=='admin'&&!$('v_users').hidden)view('app');
+    }else if(err&&err.auth)kick('Sesi berakhir. Silakan masuk lagi.');
+    return;
   }
+  const {u,err}=await ask();
   if(!u){
     if(err&&err.auth)setTok('');
     view('auth');
     if(err&&!err.auth)$('amsg').innerHTML='<span class="warn">'+esc(err.message)+' Muat ulang halaman untuk mencoba lagi.</span>';
     return;
   }
-  enter(u);
-  try{
-    const t=sessionStorage.getItem('sto_tab'),m=sessionStorage.getItem('sto_mode');
-    if(m==='sci'||m==='uni')setMode(m);
-    if(t==='red')setTab('red');else if(t==='rep')setTab('rep');else if(t==='drv')setTab('drv');
-  }catch(e){}
+  enter(u);restore();
 })();
 $('od').addEventListener('input',prog);$('od').addEventListener('blur',prog);prog();
 /* ---- Cek permintaan daftar baru (admin) ---- */
