@@ -890,6 +890,8 @@ main.stage{padding-top:20px}
 <div class="actions" style="margin:14px 0 4px">
 <button type="button" id="rep_sto">Unduh STO Report</button>
 <button type="button" id="rep_mon" class="g">Unduh Laporan Bulanan</button>
+<button type="button" id="rep_rcp" class="g" title="Excel rekap penjualan perusahaan dan bulan yang dipilih">Unduh Rekap Penjualan Bulan Ini</button>
+<button type="button" id="rep_rcp_all" class="g" title="Tiga file Excel (FICI, SCI, UNI) untuk bulan yang dipilih">Rekap Semua Perusahaan</button>
 <button type="button" id="rep_imp_b" class="g adm" hidden>Impor dari Excel</button>
 <button type="button" id="rep_del" class="dg adm" hidden disabled>Hapus terpilih</button>
 </div>
@@ -1806,7 +1808,7 @@ async function invSave(co,ents,mid){
     (r.dups||[]).forEach(id=>add('<span class="err">'+uEsc(id)+' sudah ada di sheet, tidak disimpan dua kali</span>'));
     (r.errors||[]).forEach(x=>add('<span class="err">'+uEsc(x)+'</span>'));
     ents.filter(e=>sv.includes(e.id)&&!e.lines.some(l=>l.amt>0)).forEach(e=>add('<span class="warn">'+uEsc(e.id)+': kolom nominal (amount / price) tidak terbaca di file invoice, nominal tersimpan 0</span>'));
-    if(sv.length)R.loaded=false;
+    if(sv.length){R.loaded=false;R.cache.clear()}
   }catch(e){
     add('<span class="err">Gagal menyimpan ke Google Sheet: '+uEsc((e&&e.message)||e)+'</span> <button type="button" class="g" id="invretry">Coba simpan lagi</button>');
     const b=$('invretry');b.onclick=()=>{b.remove();invSave(co,ents,mid)};
@@ -1819,7 +1821,7 @@ const MONL=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','
 const monLabel=m=>m?MONL[+m.slice(5,7)-1]+' '+m.slice(0,4):'Semua bulan';
 const REP_COLS=[['NO',54],['CUSTOMER',76],['SHIPPING DATE',108],['NO.PO',130],['MATERIAL CODE',140],['PRODUCT SPECIFICATION',330],['QTY SHIPPING',100],['NO.INVOICE',196],['No. Waybill',130],['NO.PACKING LIST',186],['Production Lot',132],['REMARK',190]];
 const REP_H=30;
-const R={co:'fici',tab:'ALL',month:null,rows:[],months:[],sel:new Set(),q:'',loaded:false,view:[],tok:0};
+const R={co:'fici',tab:'ALL',month:null,rows:[],months:[],sel:new Set(),q:'',loaded:false,view:[],tok:0,busy:false,cache:new Map()};
 const isAdm=()=>!!(me&&me.role==='admin');
 const repRow=a=>({rid:a[0],date:a[1],cat:a[2],po:a[3],mat:a[4],spec:a[5],q:a[6],inv:a[7],wb:a[8],pl:a[9],lot:a[10],rem:a[11],amt:a[12],s:(a[3]+' '+a[4]+' '+a[5]+' '+a[7]+' '+a[8]+' '+a[9]+' '+a[10]).toLowerCase()});
 const repNo=r=>r.inv.split('-').pop();
@@ -1828,16 +1830,19 @@ const repMsg=h=>{$('rep_msg').innerHTML=h};
 const fmtN=n=>Number(n).toLocaleString('id-ID',{maximumFractionDigits:2});
 function repAdminUI(){document.querySelectorAll('#p_rep .adm').forEach(b=>{b.hidden=!isAdm()})}
 async function repOpen(){repAdminUI();if(!R.loaded)await repReload(false)}
-async function repReload(keep){
-  const tk=++R.tok;R.loaded=true;R.rows=[];R.sel.clear();repMsg('');repApply();repStat('Memuat daftar bulan…');
+async function repReload(keep,force){
+  if(force)R.cache.clear();
+  const tk=++R.tok;R.loaded=true;R.busy=true;R.rows=[];R.sel.clear();repMsg('');repApply();repStat('Memuat daftar bulan…');
   try{
-    const m=await api('inv_months',{company:R.co});if(tk!==R.tok)return;
-    R.months=m.months||[];
+    let mo=R.cache.get('m|'+R.co);
+    if(!mo){const m=await api('inv_months',{company:R.co});if(tk!==R.tok)return;mo=m.months||[];R.cache.set('m|'+R.co,mo)}
+    if(tk!==R.tok)return;
+    R.months=mo;
     const have=R.months.map(x=>x.m);
     if(!keep||R.month===null||(R.month!==''&&!have.includes(R.month)))R.month=have.length?have[have.length-1]:'';
     repMonthSel();
     await repFetch(tk);
-  }catch(e){R.loaded=false;repStat('');repMsg('<span class="err">'+uEsc((e&&e.message)||e)+'</span>')}
+  }catch(e){R.busy=false;R.loaded=false;repApply();repStat('');repMsg('<span class="err">'+uEsc((e&&e.message)||e)+'</span>')}
 }
 function repMonthSel(){
   const s=$('rep_mo');
@@ -1845,32 +1850,40 @@ function repMonthSel(){
   s.value=R.month||'';
 }
 async function repFetch(tk){
-  tk=tk||++R.tok;R.rows=[];R.sel.clear();let off=0,total=1;
+  tk=tk||++R.tok;R.rows=[];R.sel.clear();R.busy=true;
+  const ck='r|'+R.co+'|'+(R.month||'');
+  const hit=R.cache.get(ck);
+  if(hit){R.rows=hit.slice();R.busy=false;repApply();return}
+  let off=0,total=1;
   try{
     while(off<total){
       repStat('Memuat '+monLabel(R.month)+'… '+fmtN(off)+(total>1?' dari '+fmtN(total):'')+' baris');
-      const j=await api('inv_list',{company:R.co,month:R.month||'',offset:off,limit:4000},90000);
+      // halaman pertama kecil supaya data cepat tampil, halaman berikutnya besar
+      const j=await api('inv_list',{company:R.co,month:R.month||'',offset:off,limit:off===0?500:4000},90000);
       if(tk!==R.tok)return;
-      total=j.total;j.rows.forEach(a=>R.rows.push(repRow(a)));off+=4000;
+      total=j.total;j.rows.forEach(a=>R.rows.push(repRow(a)));off+=j.rows.length;
       repApply();if(!j.rows.length)break;
     }
-    repApply();
-  }catch(e){repStat('');repMsg('<span class="err">'+uEsc((e&&e.message)||e)+'</span>')}
+    R.cache.set(ck,R.rows.slice());
+    R.busy=false;repApply();
+  }catch(e){if(tk!==R.tok)return;R.busy=false;repApply();repStat('');repMsg('<span class="err">'+uEsc((e&&e.message)||e)+'</span>')}
 }
 // Ambil semua baris perusahaan aktif (untuk unduhan), tidak mengubah preview
 async function repFetchAll(co){
-  if(R.month===''&&R.co===co&&R.loaded&&R.rows.length)return R.rows;
+  if(R.month===''&&R.co===co&&R.loaded&&R.rows.length&&!R.busy)return R.rows;
+  const ck='r|'+co+'|',hit=R.cache.get(ck);if(hit)return hit;
   const out=[];let off=0,total=1;
   while(off<total){
     repMsg('Mengambil data… '+fmtN(off)+(total>1?' dari '+fmtN(total):'')+' baris');
     const j=await api('inv_list',{company:co,month:'',offset:off,limit:4000},90000);
-    total=j.total;j.rows.forEach(a=>out.push(repRow(a)));off+=4000;if(!j.rows.length)break;
+    total=j.total;j.rows.forEach(a=>out.push(repRow(a)));off+=j.rows.length;if(!j.rows.length)break;
   }
+  R.cache.set(ck,out);
   return out;
 }
 function repApply(){
   const t=R.tab,q=R.q.toLowerCase().trim();
-  R.view=t==='Bulanan'?[]:R.rows.filter(r=>(t==='ALL'||r.cat===t)&&(!q||r.s.includes(q)));
+  R.view=t==='Bulanan'?[]:R.rows.filter(r=>(t==='ALL'||r.cat===t)&&(!q||r.s.includes(q))).sort((x,y)=>x.date<y.date?-1:x.date>y.date?1:repNo(x)<repNo(y)?-1:repNo(x)>repNo(y)?1:0); // urut tanggal lalu nomor invoice; laporan lama yang diimpor tidak lagi tampil di paling bawah
   repTabs();repPaint(true);
 }
 function repTabs(){
@@ -1898,7 +1911,7 @@ function repPaint(reset){
       '<td class="rn">'+(i+1)+'</td><td>'+R_CUST()+'</td><td>'+r.date+'</td><td>'+esc(r.po)+'</td><td>'+esc(r.mat)+'</td><td title="'+esc(r.spec)+'">'+esc(r.spec)+'</td><td class="n">'+fmtN(r.q)+'</td><td>'+esc(r.inv)+'</td><td'+(bad?' class="bad" title="Tidak sama dengan nomor di NO.INVOICE"':'')+'>'+esc(r.wb)+'</td><td>'+esc(r.pl)+'</td><td>'+esc(r.lot)+'</td><td title="'+esc(r.rem)+'">'+esc(r.rem)+'</td></tr>';
   }
   if(en<n)html+='<tr class="sp" style="height:'+((n-en)*h)+'px"><td colspan="'+cols+'"></td></tr>';
-  if(!n)html='<tr class="sp"><td colspan="'+cols+'" style="height:120px;text-align:center;color:var(--mut)">'+(R.rows.length?'Tidak ada baris yang cocok.':'Belum ada data.')+'</td></tr>';
+  if(!n)html='<tr class="sp"><td colspan="'+cols+'" style="height:120px;text-align:center;color:var(--mut)">'+(R.busy?'Memuat data dari Google Sheet… mohon tunggu, jangan tutup halaman.':R.rows.length?'Tidak ada baris yang cocok.':'Belum ada data.')+'</td></tr>';
   $('xl_body').innerHTML=html;
   const all=$('xl_all');if(all){const k=R.view.filter(r=>R.sel.has(r.rid)).length;all.checked=n>0&&k===n;all.indeterminate=k>0&&k<n}
   const inv=new Set(R.view.map(r=>r.inv)),qty=R.view.reduce((a,r)=>a+r.q,0);
@@ -1927,7 +1940,7 @@ function repAskDel(){
         repMsg('Menghapus… '+fmtN(del)+' dari '+fmtN(ids.length));
         const j=await api('inv_del',{company:R.co,rids:ids.slice(i,i+1500)},120000);del+=j.deleted||0;
       }
-      const gone=new Set(ids);R.rows=R.rows.filter(r=>!gone.has(r.rid));R.sel.clear();
+      const gone=new Set(ids);R.rows=R.rows.filter(r=>!gone.has(r.rid));R.sel.clear();R.cache.clear();
       $('rep_conf').innerHTML='';repMsg('<span class="ok">✓ '+fmtN(del)+' baris dihapus dari sheet '+R.co.toUpperCase()+'.</span>');
       repApply();
       try{const m=await api('inv_months',{company:R.co});R.months=m.months||[];repMonthSel()}catch(e){}
@@ -1937,14 +1950,14 @@ function repAskDel(){
 // ---- Unduh
 const serial=iso=>{const [y,m,d]=iso.split('-').map(Number);return Date.UTC(y,m-1,d)/86400000+25569};
 function repSTO(rows,co){
-  const wb=XLSX.utils.book_new(),H=['NO','CUSTOMER','SHIPPING DATE','NO.PO','MATERIAL CODE','PRODUCT SPECIFICATION','QTY SHIPPING','NO.INVOICE','No. Waybill','NO.PACKING LIST','Production Lot','REMARK'];
+  const wb=XLSX.utils.book_new(),H=['NO','CUSTOMER','SHIPPING DATE','NO.PO','PRODUCT SPECIFICATION','QTY SHIPPING','NO.INVOICE','No. Waybill','NO.PACKING LIST','Production Lot'];
   const sorted=[...rows].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:repNo(a)<repNo(b)?-1:repNo(a)>repNo(b)?1:0);
   const mk=list=>{
     const a=[['SALES REPORT PT.INDONESIA SHENGDA PAPER PACKAGING '],[' 销售报告'],H];
-    list.forEach((r,i)=>a.push([i+1,co.toUpperCase(),serial(r.date),r.po,r.mat,r.spec,r.q,r.inv,r.wb,r.pl,r.lot,r.rem||null]));
+    list.forEach((r,i)=>a.push([i+1,co.toUpperCase(),serial(r.date),r.po,r.spec,r.q,r.inv,r.wb,r.pl,r.lot]));
     const ws=XLSX.utils.aoa_to_sheet(a);
-    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:11}},{s:{r:1,c:0},e:{r:1,c:11}}];
-    ws['!cols']=[6,10,14,18,20,42,14,26,18,28,18,26].map(w=>({wch:w}));
+    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:9}},{s:{r:1,c:0},e:{r:1,c:9}}];
+    ws['!cols']=[6,10,14,18,42,14,26,18,28,18].map(w=>({wch:w}));
     for(let i=3;i<a.length;i++){const c=ws['C'+(i+1)];if(c)c.z='yyyy-mm-dd'}
     return ws};
   XLSX.utils.book_append_sheet(wb,mk(sorted),'ALL');
@@ -1986,6 +1999,62 @@ async function repDownload(kind){
   finally{bs.forEach(b=>b.disabled=false)}
 }
 
+// ---- Rekap penjualan satu bulan: satu file Excel per perusahaan
+async function repFetchMonth(co,m){
+  const out=[];let off=0,total=1;
+  while(off<total){
+    const j=await api('inv_list',{company:co,month:m,offset:off,limit:4000},90000);
+    total=j.total;j.rows.forEach(a=>out.push(repRow(a)));off+=4000;if(!j.rows.length)break;
+  }
+  return out;
+}
+function repRecapWB(rows,co,m){
+  const inv=new Map();
+  rows.forEach(r=>{let e=inv.get(r.inv);if(!e){e={inv:r.inv,date:r.date,q:0,amt:0};inv.set(r.inv,e)}e.q+=r.q;e.amt+=r.amt});
+  const list=[...inv.values()].sort((x,y)=>x.date<y.date?-1:x.date>y.date?1:x.inv<y.inv?-1:x.inv>y.inv?1:0);
+  const C=co.toUpperCase(),n=list.length,rnd=v=>Math.round(v*100)/100;
+  const a=[['REKAP PENJUALAN '+C+' - '+monLabel(m).toUpperCase()],[],['No','Tanggal Invoice','Nomor Invoice','Qty','Total Harga Invoice (Rp)']];
+  list.forEach((e,i)=>a.push([i+1,serial(e.date),e.inv,rnd(e.q),rnd(e.amt)]));
+  a.push(['','','TOTAL',rnd(list.reduce((t,e)=>t+e.q,0)),rnd(list.reduce((t,e)=>t+e.amt,0))]);
+  const ws=XLSX.utils.aoa_to_sheet(a);
+  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:4}}];
+  ws['!cols']=[6,16,28,12,26].map(w=>({wch:w}));
+  for(let i=4;i<=n+4;i++){
+    const d=ws['B'+i],q=ws['D'+i],h=ws['E'+i];
+    if(d&&i<=n+3)d.z='yyyy-mm-dd';
+    if(q)q.z='#,##0';
+    if(h)h.z='"Rp" #,##0';
+  }
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Rekap '+C);
+  wb.__name='REKAP_PENJUALAN_'+C+'_'+MON[+m.slice(5,7)-1]+'_'+m.slice(0,4);
+  wb.__zero=!rows.some(r=>r.amt>0);
+  return wb;
+}
+async function repRecap(all){
+  const m=R.month;
+  if(!m){repMsg('<span class="warn">Pilih bulan dulu di pilihan bulan, lalu unduh rekap penjualan.</span>');return}
+  const bs=[$('rep_sto'),$('rep_mon'),$('rep_rcp'),$('rep_rcp_all')];bs.forEach(b=>b.disabled=true);
+  try{
+    const cos=all?['fici','sci','uni']:[R.co],done=[],empty=[],zero=[];
+    for(const co of cos){
+      repMsg('Mengambil data '+co.toUpperCase()+' '+monLabel(m)+'…');
+      const rows=await repFetchMonth(co,m);
+      if(!rows.length){empty.push(co.toUpperCase());continue}
+      const wb=repRecapWB(rows,co,m);
+      if(await saveWB(wb,wb.__name,'xlsx','xlsx','rep_msg')===false)return;
+      done.push(wb.__name+'.xlsx');if(wb.__zero)zero.push(co.toUpperCase());
+      if(all)await new Promise(r=>setTimeout(r,500));
+    }
+    let h='';
+    if(done.length)h+='<span class="ok">File diunduh ('+monLabel(m)+'): '+done.map(uEsc).join(', ')+'</span>';
+    if(empty.length)h+=(h?'<br>':'')+'<span class="warn">Tidak ada invoice '+empty.join(', ')+' di '+monLabel(m)+'.</span>';
+    if(zero.length)h+='<br><span class="warn">Total harga '+zero.join(', ')+' bernilai 0: nominal belum terbaca dari file invoice.</span>';
+    repMsg(h);
+  }catch(e){repMsg('<span class="err">'+uEsc((e&&e.message)||e)+'</span>')}
+  finally{bs.forEach(b=>b.disabled=false)}
+}
+
 // ===== Impor laporan STO (sheet ALL / Carton / Partition) =====
 const impNorm=x=>String(x==null?'':x).toLowerCase().replace(/\s+/g,'');
 function impSerial(v){if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*86400000));return d.getUTCFullYear()+'-'+pad2(d.getUTCMonth()+1)+'-'+pad2(d.getUTCDate())}return invIso(v)}
@@ -1995,11 +2064,11 @@ function impSheet(rows){
   if(hr<0)return null;
   const M={shippingdate:'date','no.po':'po',materialcode:'mat',productspecification:'spec',qtyshipping:'q','no.invoice':'inv','no.waybill':'wb','no.packinglist':'pl',productionlot:'lot',remark:'rem',customer:'cust'},col={};
   rows[hr].forEach((c,i)=>{const k=M[impNorm(c)];if(k&&!(k in col))col[k]=i});
-  if(!('date' in col&&'po' in col&&'mat' in col&&'q' in col&&'inv' in col))return null;
+  if(!('date' in col&&'po' in col&&'q' in col&&'inv' in col))return null;
   const out=[],bad=[],t=v=>v==null?'':String(v).trim();
   for(let i=hr+1;i<rows.length;i++){
     const r=rows[i]||[];
-    const o={po:t(r[col.po]),mat:t(r[col.mat]),inv:t(r[col.inv]),spec:'spec' in col?t(r[col.spec]):'',wb:'wb' in col?t(r[col.wb]):'',pl:'pl' in col?t(r[col.pl]):'',lot:'lot' in col?t(r[col.lot]):'',rem:'rem' in col?t(r[col.rem]):'',cust:'cust' in col?t(r[col.cust]).toUpperCase():'',date:impSerial(r[col.date]),q:typeof r[col.q]==='number'?r[col.q]:Number(String(r[col.q]==null?'':r[col.q]).replace(/,/g,'')),amt:0,row:i+1};
+    const o={po:t(r[col.po]),mat:'mat' in col?t(r[col.mat]):'',inv:t(r[col.inv]),spec:'spec' in col?t(r[col.spec]):'',wb:'wb' in col?t(r[col.wb]):'',pl:'pl' in col?t(r[col.pl]):'',lot:'lot' in col?t(r[col.lot]):'',rem:'rem' in col?t(r[col.rem]):'',cust:'cust' in col?t(r[col.cust]).toUpperCase():'',date:impSerial(r[col.date]),q:typeof r[col.q]==='number'?r[col.q]:Number(String(r[col.q]==null?'':r[col.q]).replace(/,/g,'')),amt:0,row:i+1};
     if(!o.po&&!o.mat&&!o.inv)continue;
     out.push(o);
   }
@@ -2016,7 +2085,7 @@ function impBuild(sh,co,code){
   const cp=[];(C||[]).forEach(o=>cp.push(Object.assign({},o,{cat:'Carton'})));(P||[]).forEach(o=>cp.push(Object.assign({},o,{cat:'Partition'})));
   cp.forEach(o=>{const k=impKey(o);if(!q.has(k))q.set(k,[]);q.get(k).push(o)});
   const mm=new Map();cp.forEach(o=>{if(!mm.has(o.mat))mm.set(o.mat,{Carton:0,Partition:0});mm.get(o.mat)[o.cat]++});
-  const catOf=o=>{const m=mm.get(o.mat);if(m&&m.Carton!==m.Partition)return m.Carton>m.Partition?'Carton':'Partition';return impCatRule(o.spec)};
+  const catOf=o=>{const m=o.mat?mm.get(o.mat):null;if(m&&m.Carton!==m.Partition)return m.Carton>m.Partition?'Carton':'Partition';return impCatRule(o.spec)};
   const rows=[];let onlyA=0,onlyCP=0;
   (A||[]).forEach(o=>{const l=q.get(impKey(o));if(l&&l.length){const m=l.shift();rows.push(Object.assign({},o,{cat:m.cat}))}else{onlyA++;rows.push(Object.assign({},o,{cat:catOf(o)}))}});
   q.forEach(l=>l.forEach(o=>{onlyCP++;rows.push(o)}));
@@ -2086,9 +2155,11 @@ async function impGo(){
       const j=await api('inv_save',{company:co,import:true,invoices:payload},180000);
       saved+=(j.saved||[]).length;rows+=j.rows||0;dups.push(...(j.dups||[]));errs.push(...(j.errors||[]));
     }
+    R.cache.clear();R.loaded=false;
     p.innerHTML='<span class="ok">✓ Selesai: '+saved+' invoice ('+fmtN(rows)+' baris) masuk ke sheet '+co.toUpperCase()+'.</span>'+(dups.length?'<br><span class="warn">'+dups.length+' invoice sudah ada sebelumnya, dilewati.</span>':'')+errs.slice(0,6).map(x=>'<br><span class="err">• '+uEsc(x)+'</span>').join('');
     await repReload(true);
   }catch(e){
+    R.cache.clear();R.loaded=false;
     p.innerHTML='<span class="err">Impor terhenti: '+uEsc((e&&e.message)||e)+'</span><br><span class="f">'+fmtN(rows)+' baris sudah tersimpan. Jalankan impor lagi: invoice yang sudah masuk otomatis dilewati.</span>';
     go.disabled=false;
   }
@@ -2101,9 +2172,11 @@ document.querySelectorAll('#rep_co_seg button').forEach(b=>b.onclick=()=>{
 });
 $('rep_mo').onchange=e=>{R.month=e.target.value;R.sel.clear();if(R.tab==='Bulanan')R.tab='ALL';$('rep_conf').innerHTML='';repFetch()};
 let _qt=0;$('rep_q').oninput=e=>{clearTimeout(_qt);_qt=setTimeout(()=>{R.q=e.target.value;R.sel.clear();repApply()},200)};
-$('rep_reload').onclick=()=>repReload(true);
+$('rep_reload').onclick=()=>repReload(true,true);
 $('rep_sto').onclick=()=>repDownload('sto');
 $('rep_mon').onclick=()=>repDownload('mon');
+$('rep_rcp').onclick=()=>repRecap(false);
+$('rep_rcp_all').onclick=()=>repRecap(true);
 $('rep_del').onclick=repAskDel;
 $('rep_imp_b').onclick=()=>{const c=$('rep_imp');c.hidden=!c.hidden;if(!c.hidden){$('imp_go').textContent='Impor ke sheet '+R.co.toUpperCase();c.scrollIntoView({behavior:'smooth',block:'nearest'})}};
 $('imp_x').onclick=()=>{$('rep_imp').hidden=true};
