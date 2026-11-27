@@ -1529,7 +1529,7 @@ $('fu_rec').onchange=async e=>{
       if(cx)cancel++;else total+=q-shipped;
       rows.set(uNorm(po)+'|'+uNorm(mc),{r:ri+1,q,shipped,free,wbs,gn:cols.gn?uNorm(row[cols.gn-1]):'',date:cols.dt?dkey(row[cols.dt-1]):'',cancel:cx});
     }
-    U.rec={buf,name:f.name,sheet:sh.name,cols,slots,rows,total};tk.stop();
+    U.rec={buf,name:f.name,sheet:sh.name,cols,slots,rows,rawRows:arr,total};tk.stop();
     info.innerHTML='<span class="ok">✓ '+uEsc(f.name)+'</span> (sheet '+uEsc(sh.name)+', '+uFmt(rows.size)+' baris, total outstanding '+uFmt(total)+(cancel?', '+uFmt(cancel)+' baris CANCEL tidak dihitung':'')+')';
   }catch(er){tk.stop();U.rec=null;info.innerHTML='<span class="err">Gagal membaca file: '+uEsc(er.message||er)+'</span>'}
   data.nm.o=U.rec?f.name:data.nm.o;
@@ -2013,7 +2013,7 @@ async function uBuild(){
   await uTick();
   let ok=false;
   try{
-    const rows=U.rec.rows.map(r=>r?r.slice():[]);
+    const rows=U.rec.rawRows.map(r=>r?r.slice():[]);
     const byRow=new Map();
     P.actions.forEach(a=>byRow.set(a.r,{t:a.t,q:a.q}));
     setDlProg('msgu',40,'Mengisi tanggal kirim & qty ke '+P.actions.length+' baris');
