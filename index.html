@@ -896,7 +896,7 @@ main.stage{padding-top:20px}
 <div id="done" hidden></div>
 <div id="amsg" class="f" role="status"></div>
 </div></div>
-<footer class="afoot">&copy; <span id="yr2">2026</span> Laras Gita Milenia</footer>
+<footer class="afoot">&copy; <span id="yr2">2026</span> Laras Gita Milenia &middot; <span class="appver">v1.0.7 Beta</span></footer>
 </section>
 
 <section id="v_app" hidden>
@@ -1031,7 +1031,7 @@ main.stage{padding-top:20px}
 </div>
 <div class="wg wxc"><div class="wx-top"><h3>Ramalan cuaca</h3><div class="wx-ctl"><select id="wx_city" aria-label="Kota"></select><button type="button" id="wx_loc" class="g">Lokasi saya</button></div></div><div class="wx-now" id="wx_now"></div><div class="wx-days" id="wx_days"></div><div class="wx-msg" id="wx_msg">Memuat cuaca…</div></div>
 </section>
-<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span>Beta Version 1.0.6</span></footer></div>
+<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span class="appver">v1.0.7 Beta</span></footer></div>
 </main>
 </div></div>
 
@@ -1221,14 +1221,19 @@ function fmtTgl(v){
 // Sheet Packing List (PL) di file INVOICE & PACKING LIST: No. Packing List, No. Shipping (waybill), Shipping Date, dan No Lot per baris
 function parsePL(rows){
   const nz=c=>String(c==null?'':c).toLowerCase().replace(/[\s:]+/g,'');
+  const SD=/^SD\d{10}$/i;
   let hr=-1,ci=null;
-  for(let i=0;i<Math.min(rows.length,60)&&hr<0;i++){
+  for(let i=0;i<Math.min(rows.length,80)&&hr<0;i++){
     const lc=(rows[i]||[]).map(nz);
-    const q=lc.findIndex(x=>x.startsWith('qty')),l=lc.findIndex(x=>x.includes('lot')),n=lc.findIndex(x=>x.startsWith('name'));
+    const q=lc.findIndex(x=>x.startsWith('qty')||x.startsWith('quantity'));
+    const l=lc.findIndex(x=>x.includes('lot')||x.includes('batch'));
+    const n=lc.findIndex((x,k)=>k!==l&&(x.startsWith('name')||x.includes('product')||x.includes('spec')||x.includes('description')||x.includes('goods')||x.includes('item')));
     if(q>=0&&l>=0&&n>=0){hr=i;ci={q,l,n,r:lc.findIndex(x=>x==='remark'||x==='remarks')}}
   }
   if(hr<0)return null;
-  const info={},KEY={'no.packinglist':'pl','packinglist':'pl','no.shipping':'wb','shippingdate':'dt'};
+  const info={},KEY={'no.packinglist':'pl','nopackinglist':'pl','packinglistno':'pl','packinglistno.':'pl','packinglist':'pl','plno':'pl','pl.no':'pl','no.pl':'pl','nopl':'pl',
+    'no.shipping':'wb','noshipping':'wb','shippingno':'wb','no.waybill':'wb','nowaybill':'wb','waybill':'wb','waybillno':'wb',
+    'shippingdate':'dt','tanggalkirim':'dt','tanggalpengiriman':'dt'};
   for(let i=0;i<hr;i++){
     const r=rows[i]||[];
     r.forEach((c,k)=>{
@@ -1236,13 +1241,21 @@ function parsePL(rows){
       for(let j=k+1;j<r.length;j++){const v=r[j];if(v!=null&&String(v).trim()!==''){info[f]=String(v).trim().replace(/^[:\s]+/,'');break}}
     });
   }
+  // cadangan: cari polanya langsung, mis. 1157/ISPP-MRKT-PL/XI/2026 dan PA2611020002
+  for(let i=0;i<hr&&(!info.pl||!info.wb);i++)(rows[i]||[]).forEach(c=>{
+    const t=String(c==null?'':c);let m;
+    if(!info.pl&&(m=/\d{1,6}\/ISPP-[A-Z-]*PL\/[A-Z0-9]+\/\d{4}/i.exec(t)))info.pl=m[0];
+    if(!info.wb&&(m=/PA\d{10}/i.exec(t)))info.wb=m[0].toUpperCase();
+  });
   const lines=[];
   for(let i=hr+1;i<rows.length;i++){
     const r=rows[i]||[],name=String(r[ci.n]==null?'':r[ci.n]).trim();
     if(/^(sub\s*)?total/i.test(name))break;
     const q=num(r[ci.q]);
     if(!name||q<=0)continue;
-    lines.push({name,q,lot:String(r[ci.l]==null?'':r[ci.l]).trim(),rem:ci.r>=0&&r[ci.r]!=null?String(r[ci.r]).trim():''});
+    let lot=String(r[ci.l]==null?'':r[ci.l]).trim();
+    if(!lot){const f=r.find(c=>SD.test(String(c==null?'':c).trim()));if(f)lot=String(f).trim()}
+    lines.push({name,q,lot,rem:ci.r>=0&&r[ci.r]!=null?String(r[ci.r]).trim():''});
   }
   return {info,lines};
 }
@@ -1255,22 +1268,25 @@ function mergePL(inv,sheets){
     if(pl.info.wb)inv.wb=pl.info.wb;
     if(!inv.tgl&&pl.info.dt)inv.tgl=pl.info.dt;
     const nm=t=>String(t==null?'':t).toLowerCase().replace(/[\s"'\uFF1E\uFF1C<>]/g,''),used=new Array(pl.lines.length).fill(false);
-    const sameLen=inv.lines.length===pl.lines.length;let byOrder=0,none=0;
+    const sameLen=inv.lines.length===pl.lines.length;let byOrder=0,byQty=0,none=0,ptr=0;
     inv.lines.forEach((L,i)=>{
       let k=-1;
       if(i<pl.lines.length&&!used[i]&&pl.lines[i].q===L.q&&nm(pl.lines[i].name)===nm(L.item))k=i;
       else k=pl.lines.findIndex((x,j)=>!used[j]&&x.q===L.q&&nm(x.name)===nm(L.item));
       if(k<0&&sameLen&&!used[i]){k=i;byOrder++}
+      if(k<0){k=pl.lines.findIndex((x,j)=>!used[j]&&j>=ptr&&x.q===L.q);if(k>=0)byQty++}
       if(k<0){none++;return}
-      used[k]=true;
+      used[k]=true;ptr=k+1;
       if(!L.lot)L.lot=pl.lines[k].lot;
       if(!L.rem)L.rem=pl.lines[k].rem;
     });
     if(byOrder)warn.push(byOrder+' baris dipasangkan dengan Packing List berdasarkan urutan (nama atau qty tidak persis sama)');
+    if(byQty)warn.push(byQty+' baris dipasangkan dengan Packing List berdasarkan qty dan urutan (nama tidak sama)');
     if(none)warn.push(none+' baris invoice tidak ketemu pasangannya di Packing List, lot dikosongkan');
     const nolot=inv.lines.filter(l=>!l.lot).length;
     if(nolot&&!none)warn.push(nolot+' baris Packing List tanpa nomor lot');
-  }else warn.push('Sheet Packing List tidak ditemukan, No. Packing List dan Production Lot dikosongkan');
+    if(!inv.pl)warn.push('No. Packing List tidak terbaca di sheet Packing List');
+  }else warn.push('Sheet Packing List tidak terbaca, No. Packing List dan Production Lot dikosongkan (sheet di file: '+sheets.map(x=>x.name).join(', ')+'). Pastikan ada sheet dengan kolom Name, No Lot, dan Qty');
   inv.wb=inv.wb||suf;
   inv.lines.forEach(L=>{if(!L.pl)L.pl=inv.pl||'';L.wb=inv.wb});
   inv.warn=warn;
@@ -1338,7 +1354,7 @@ $('fi').onchange=async()=>{
         else{msgs.push('<span class="warn">'+f.name+' dilewati, nomor invoice sama dengan '+data.inv[dup].name+' yang lebih baru</span>');continue}
       }
       data.inv.push(inv);
-      msgs.push('<span class="ok">✓ '+inv.no+'</span> ('+inv.lines.length+' baris, '+inv.lines.reduce((a,l)=>a+l.q,0).toLocaleString('id-ID')+' pcs, kirim '+(inv.tgl||'tanggal tidak terbaca')+')');
+      msgs.push('<span class="ok">✓ '+inv.no+'</span> ('+inv.lines.length+' baris, '+inv.lines.reduce((a,l)=>a+l.q,0).toLocaleString('id-ID')+' pcs, kirim '+(inv.tgl||'tanggal tidak terbaca')+')'+(inv.warn||[]).map(w=>'<br><span class="warn">'+uEsc(w)+'</span>').join(''));
     }catch(e){msgs.push('<span class="err">'+f.name+': '+e.message+'</span>')}
   }
   info.innerHTML=msgs.join('<br>');
@@ -2016,7 +2032,7 @@ $('fu_inv').onchange=async e=>{
     }
     if(!U.groups.length)throw new Error('Tidak ada data yang bisa dibaca dari file.');
   }catch(er){U.groups=[];$('u_grp').textContent='Muncul setelah invoice diunggah.';info.innerHTML='<span class="err">'+uEsc(er.message||er)+'</span>';uniRefresh();return}
-  info.innerHTML='<span class="ok">✓ '+U.groups.length+' kelompok</span> ('+uFmt(U.groups.reduce((a,g)=>a+g.items.length,0))+' item)';
+  info.innerHTML='<span class="ok">✓ '+U.groups.length+' kelompok</span> ('+uFmt(U.groups.reduce((a,g)=>a+g.items.length,0))+' item)'+U.groups.filter(g=>g.inv&&g.inv.warn&&g.inv.warn.length).map(g=>'<br><span class="warn">'+uEsc(g.inv.no)+': '+g.inv.warn.map(uEsc).join('; ')+'</span>').join('');
   $('u_grp').innerHTML=U.groups.map(g=>'<div style="border-top:1px solid var(--line,#e3e6ee);padding:8px 0"><div>'+uEsc(g.label)+'</div><div class="f">'+g.items.length+' item · total qty '+uFmt(g.items.reduce((a,b)=>a+b.qty,0))+'</div>'+
     '<input type="date" data-ug="'+g.id+'" data-k="dt" value="'+(g.dt||uToday())+'" style="width:100%;margin-top:6px;box-sizing:border-box"></div>').join('');
   document.querySelectorAll('#u_grp input').forEach(i=>i.oninput=uniRefresh);
