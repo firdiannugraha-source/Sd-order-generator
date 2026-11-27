@@ -956,11 +956,20 @@ main.stage{padding-top:20px}
 <button type="button" id="rep_mon" class="g">Unduh Laporan Bulanan</button>
 <button type="button" id="rep_rcp" class="g" title="Excel rekap penjualan perusahaan dan bulan yang dipilih">Unduh Rekap Penjualan Bulan Ini</button>
 <button type="button" id="rep_rcp_all" class="g" title="Tiga file Excel (FICI, SCI, UNI) untuk bulan yang dipilih">Rekap Semua Perusahaan</button>
+<button type="button" id="rep_inv_b" class="g">Input Invoice (Excel)</button>
 <button type="button" id="rep_imp_b" class="g adm" hidden>Impor dari Excel</button>
 <button type="button" id="rep_del" class="dg adm" hidden disabled>Hapus terpilih</button>
 </div>
 <div id="rep_conf"></div>
 <div id="rep_msg" class="f" role="status"></div>
+</div>
+<div class="card" id="rep_invc" hidden>
+<h2>Input Invoice ke Laporan</h2>
+<div class="f">Pilih file INVOICE &amp; PACKING LIST (.xlsx), boleh lebih dari satu. Perusahaan dikenali dari nomor invoice (ISPP-LRI = FICI, ISPP-SCI = SCI, ISPP-UNI = UNI). No. Packing List, No. Waybill, dan Production Lot diambil dari sheet Packing List. Data dicek dulu sebelum disimpan, nomor invoice yang sudah ada dilewati.</div>
+<input type="file" id="ivi_f" accept=".xlsx" multiple style="margin-top:10px">
+<div id="ivi_i" class="f" role="status"></div>
+<div class="actions"><button type="button" id="ivi_go" disabled>Simpan ke Google Sheet</button><button type="button" id="ivi_x" class="g">Tutup</button></div>
+<div id="ivi_p" class="f" role="status"></div>
 </div>
 <div class="card" id="rep_imp" hidden>
 <h2>Impor dari Excel</h2>
@@ -1022,7 +1031,7 @@ main.stage{padding-top:20px}
 </div>
 <div class="wg wxc"><div class="wx-top"><h3>Ramalan cuaca</h3><div class="wx-ctl"><select id="wx_city" aria-label="Kota"></select><button type="button" id="wx_loc" class="g">Lokasi saya</button></div></div><div class="wx-now" id="wx_now"></div><div class="wx-days" id="wx_days"></div><div class="wx-msg" id="wx_msg">Memuat cuaca…</div></div>
 </section>
-<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span>Beta Version 1.0.2</span></footer></div>
+<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span>Beta Version 1.0.3</span></footer></div>
 </main>
 </div></div>
 
@@ -1209,9 +1218,66 @@ function fmtTgl(v){
   return String(v).trim();
 }
 // Pilih sheet yang berisi tabel invoice (kolom Material Number + NO.PO + Qty), sheet ber-nama INVOICE didahulukan
+// Sheet Packing List (PL) di file INVOICE & PACKING LIST: No. Packing List, No. Shipping (waybill), Shipping Date, dan No Lot per baris
+function parsePL(rows){
+  const nz=c=>String(c==null?'':c).toLowerCase().replace(/[\s:]+/g,'');
+  let hr=-1,ci=null;
+  for(let i=0;i<Math.min(rows.length,60)&&hr<0;i++){
+    const lc=(rows[i]||[]).map(nz);
+    const q=lc.findIndex(x=>x.startsWith('qty')),l=lc.findIndex(x=>x.includes('lot')),n=lc.findIndex(x=>x.startsWith('name'));
+    if(q>=0&&l>=0&&n>=0){hr=i;ci={q,l,n,r:lc.findIndex(x=>x==='remark'||x==='remarks')}}
+  }
+  if(hr<0)return null;
+  const info={},KEY={'no.packinglist':'pl','packinglist':'pl','no.shipping':'wb','shippingdate':'dt'};
+  for(let i=0;i<hr;i++){
+    const r=rows[i]||[];
+    r.forEach((c,k)=>{
+      const f=KEY[nz(c)];if(!f||info[f])return;
+      for(let j=k+1;j<r.length;j++){const v=r[j];if(v!=null&&String(v).trim()!==''){info[f]=String(v).trim().replace(/^[:\s]+/,'');break}}
+    });
+  }
+  const lines=[];
+  for(let i=hr+1;i<rows.length;i++){
+    const r=rows[i]||[],name=String(r[ci.n]==null?'':r[ci.n]).trim();
+    if(/^(sub\s*)?total/i.test(name))break;
+    const q=num(r[ci.q]);
+    if(!name||q<=0)continue;
+    lines.push({name,q,lot:String(r[ci.l]==null?'':r[ci.l]).trim(),rem:ci.r>=0&&r[ci.r]!=null?String(r[ci.r]).trim():''});
+  }
+  return {info,lines};
+}
+function mergePL(inv,sheets){
+  const suf=String(inv.no||'').split('-').pop(),warn=[];
+  let pl=null;
+  for(const sh of sheets){if(sh.name===inv.sheet)continue;const p=parsePL(sh.rows);if(p&&p.lines.length){pl=p;break}}
+  if(pl){
+    if(pl.info.pl)inv.pl=pl.info.pl;
+    if(pl.info.wb)inv.wb=pl.info.wb;
+    if(!inv.tgl&&pl.info.dt)inv.tgl=pl.info.dt;
+    const nm=t=>String(t==null?'':t).toLowerCase().replace(/[\s"'\uFF1E\uFF1C<>]/g,''),used=new Array(pl.lines.length).fill(false);
+    const sameLen=inv.lines.length===pl.lines.length;let byOrder=0,none=0;
+    inv.lines.forEach((L,i)=>{
+      let k=-1;
+      if(i<pl.lines.length&&!used[i]&&pl.lines[i].q===L.q&&nm(pl.lines[i].name)===nm(L.item))k=i;
+      else k=pl.lines.findIndex((x,j)=>!used[j]&&x.q===L.q&&nm(x.name)===nm(L.item));
+      if(k<0&&sameLen&&!used[i]){k=i;byOrder++}
+      if(k<0){none++;return}
+      used[k]=true;
+      if(!L.lot)L.lot=pl.lines[k].lot;
+      if(!L.rem)L.rem=pl.lines[k].rem;
+    });
+    if(byOrder)warn.push(byOrder+' baris dipasangkan dengan Packing List berdasarkan urutan (nama atau qty tidak persis sama)');
+    if(none)warn.push(none+' baris invoice tidak ketemu pasangannya di Packing List, lot dikosongkan');
+    const nolot=inv.lines.filter(l=>!l.lot).length;
+    if(nolot&&!none)warn.push(nolot+' baris Packing List tanpa nomor lot');
+  }else warn.push('Sheet Packing List tidak ditemukan, No. Packing List dan Production Lot dikosongkan');
+  inv.wb=inv.wb||suf;
+  inv.lines.forEach(L=>{if(!L.pl)L.pl=inv.pl||'';L.wb=inv.wb});
+  inv.warn=warn;
+}
 function parseInvoiceBook(sheets,fname){
   const order=[...sheets].sort((a,b)=>(/invoice/i.test(b.name)?1:0)-(/invoice/i.test(a.name)?1:0));
-  for(const sh of order){try{const inv=parseInvoice(sh.rows,fname);inv.sheet=sh.name;return inv}catch(e){}}
+  for(const sh of order){try{const inv=parseInvoice(sh.rows,fname);inv.sheet=sh.name;try{mergePL(inv,sheets)}catch(e){inv.warn=['Gagal membaca sheet Packing List: '+((e&&e.message)||e)]}return inv}catch(e){}}
   throw new Error('tidak ada sheet invoice dengan kolom Material Number, NO.PO, dan Qty');
 }
 function parseInvoice(rows,fname){
@@ -2296,6 +2362,65 @@ async function repRecap(all){
   }catch(e){repMsg('<span class="err">'+uEsc((e&&e.message)||e)+'</span>')}
   finally{bs.forEach(b=>b.disabled=false)}
 }
+
+// ===== Input invoice langsung ke Laporan Invoice (file INVOICE & PACKING LIST) =====
+const IVI={items:[]};
+const iviCo=no=>{const m=/^ISPP-([A-Z]+)-/.exec(String(no||'').trim().toUpperCase());return m?(Object.keys(INV_CODE).find(k=>INV_CODE[k]===m[1])||null):null};
+async function iviRead(files){
+  const info=$('ivi_i');IVI.items=[];$('ivi_go').disabled=true;$('ivi_p').innerHTML='';
+  info.textContent='Membaca…';const msgs=[];
+  for(const f of files){
+    try{
+      const inv=parseInvoiceBook(await readFileAll(f),f.name);
+      const dup=IVI.items.find(x=>x.inv.no===inv.no);
+      if(dup){msgs.push('<span class="warn">'+uEsc(f.name)+' dilewati, nomor invoice sama dengan '+uEsc(dup.f)+'</span>');continue}
+      const known=iviCo(inv.no),co=known||R.co;
+      IVI.items.push({f:f.name,inv,co});
+      const q=inv.lines.reduce((a,l)=>a+l.q,0),amt=inv.lines.reduce((a,l)=>a+l.amt,0);
+      msgs.push('<span class="ok">✓ '+uEsc(inv.no)+'</span> → <b>'+co.toUpperCase()+'</b> · '+fmtN(inv.lines.length)+' baris · qty '+fmtN(q)+' · Rp '+fmtN(Math.round(amt))+' · kirim '+uEsc(inv.tgl||'tanggal tidak terbaca')+(inv.pl?' · PL '+uEsc(inv.pl):'')+
+        (known?'':'<br><span class="warn">Kode perusahaan tidak terbaca dari nomor invoice, dimasukkan ke '+co.toUpperCase()+' (perusahaan yang sedang dipilih)</span>')+
+        (inv.warn||[]).map(w=>'<br><span class="warn">'+uEsc(w)+'</span>').join(''));
+    }catch(e){msgs.push('<span class="err">'+uEsc(f.name)+': '+uEsc((e&&e.message)||e)+'</span>')}
+  }
+  info.innerHTML=msgs.join('<br>');
+  $('ivi_go').disabled=!IVI.items.length;
+}
+async function iviSave(){
+  const p=$('ivi_p'),btn=$('ivi_go');btn.disabled=true;p.textContent='Memeriksa duplikat di Google Sheet…';
+  const by={};IVI.items.forEach(x=>{(by[x.co]=by[x.co]||[]).push({no:x.inv.no,tgl:x.inv.tgl,lines:x.inv.lines})});
+  const out=[];let saved=0;
+  try{
+    for(const co of Object.keys(by)){
+      const P=invPrepare(co,by[co]);
+      P.errors.forEach(e=>out.push('<span class="err">• '+uEsc(e)+'</span>'));
+      let dups=[];
+      if(P.ok.length)dups=(await api('inv_check',{company:co,ids:P.ok.map(e=>e.id)})).dups||[];
+      dups.forEach(id=>out.push('<span class="warn">• '+uEsc(id)+' sudah tersimpan di sheet '+co.toUpperCase()+', dilewati</span>'));
+      const ents=P.ok.filter(e=>!dups.includes(e.id));
+      if(!ents.length)continue;
+      p.textContent='Menyimpan '+ents.length+' invoice ke sheet '+co.toUpperCase()+'…';
+      const r=await api('inv_save',{company:co,invoices:ents},120000),sv=r.saved||[];
+      saved+=sv.length;
+      if(sv.length)out.push('<span class="ok">✓ '+sv.length+' invoice tersimpan di sheet '+co.toUpperCase()+': '+sv.map(uEsc).join(', ')+'</span>');
+      (r.dups||[]).forEach(id=>out.push('<span class="warn">• '+uEsc(id)+' sudah ada di sheet, tidak disimpan dua kali</span>'));
+      (r.errors||[]).forEach(x=>out.push('<span class="err">• '+uEsc(x)+'</span>'));
+      ents.filter(e=>sv.includes(e.id)&&!e.lines.some(l=>l.amt>0)).forEach(e=>out.push('<span class="warn">• '+uEsc(e.id)+': kolom harga tidak terbaca, nominal tersimpan 0</span>'));
+    }
+    p.innerHTML=out.join('<br>');
+    if(saved){
+      R.cache.clear();R.loaded=false;IVI.items=[];$('ivi_i').innerHTML='';
+      await repReload(true);
+    }else btn.disabled=false;
+  }catch(e){
+    if(e&&e.auth)return kick(e.message);
+    p.innerHTML=out.concat('<span class="err">Gagal menyimpan: '+uEsc((e&&e.message)||e)+'</span>').join('<br>');
+    btn.disabled=false;
+  }
+}
+$('rep_inv_b').onclick=()=>{const c=$('rep_invc');c.hidden=!c.hidden;if(!c.hidden)c.scrollIntoView({behavior:'smooth',block:'nearest'})};
+$('ivi_x').onclick=()=>{$('rep_invc').hidden=true};
+$('ivi_f').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)iviRead(fs)};
+$('ivi_go').onclick=iviSave;
 
 // ===== Impor laporan STO (sheet ALL / Carton / Partition) =====
 const impNorm=x=>String(x==null?'':x).toLowerCase().replace(/\s+/g,'');
