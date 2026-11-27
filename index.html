@@ -7,12 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%22 height=%22100%22 rx=%2228%22 fill=%22%23e9f04b%22/%3E%3Cpath d=%22M20 40 44 30 68 40 44 51Z%22 fill=%22%232a2a26%22/%3E%3Cpath d=%22M20 40 44 51V82L20 70Z%22 fill=%22%232a2a26%22/%3E%3Cpath d=%22M44 51 68 40V70L44 82Z%22 fill=%22%232a2a26%22/%3E%3Cpath d=%22M20 40 44 51 68 40M44 51V82%22 fill=%22none%22 stroke=%22%23e9f04b%22 stroke-width=%222.4%22 stroke-linejoin=%22round%22/%3E%3Cpath d=%22M30 37.5 50 46.5M36 35 56 44%22 stroke=%22%23e9f04b%22 stroke-width=%222.6%22 stroke-linecap=%22round%22/%3E%3Cpath d=%22M66 14 69 23M75 22 83 18%22 stroke=%22%232a2a26%22 stroke-width=%224%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2270%22 cy=%2272%22 r=%2217%22 fill=%22%23f8f4e6%22/%3E%3Cpath d=%22M62 72.5 68.5 79 79 65.5%22 fill=%22none%22 stroke=%22%232a2a26%22 stroke-width=%225%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
-/* ---- Cek permintaan daftar baru (admin) ---- */
-const pollAdmin=()=>{if(me&&me.role==='admin'&&!document.hidden&&$('v_users').hidden)refreshUsers(true)};
-setInterval(pollAdmin,90000);document.addEventListener('visibilitychange',pollAdmin);
-</script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#e2e7fa;--fg:#14142b;--mut:#7c829e;--card:#ffffff;--bd:#e7eaf6;--soft:#f3f5fd;--acc:#4b50f5;--acc2:#7a7fff;--pink:#f33dcb;--pink-soft:#fde8f9;--on-acc:#fff;--shadow:0 8px 22px rgba(75,80,245,.08);--btn-sh:rgba(75,80,245,.30);--ok:#2bb673;--warn:#c9800a;--err:#e5484d;color-scheme:light}
 
@@ -1176,7 +1171,7 @@ $('dlo').onclick=async()=>{
     const runDl=async()=>{
       setDlProg('msg2',75,'Membuat berkas OUTSTANDING_TERBARU.xlsx');
       await uTick();
-      const ok=saveWB(r.wb,'OUTSTANDING_TERBARU','xlsx','xlsx','msg2');
+      const ok=await saveWB(r.wb,'OUTSTANDING_TERBARU','xlsx','xlsx','msg2');
       if(ok)setDlProg('msg2',100,'Selesai! File OUTSTANDING_TERBARU.xlsx diunduh','ok');
       return ok;
     };
@@ -1407,9 +1402,13 @@ function saveBytes(buf,fname,ext,mid){
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   $(mid).innerHTML='<span class="ok">File diunduh: '+fname+'.'+ext+'</span>';
 }
-function saveWB(wbk,fname,ext,type,mid){mid=mid||'msg';
-  try{saveBytes(XLSX.write(wbk,{bookType:type,type:'array'}),fname,ext,mid);return true}
-  catch(e){$(mid).innerHTML='<span class="err">Gagal menyimpan: '+((e&&e.message)||e)+'</span>';return false}
+async function saveWB(wbk,fname,ext,type,mid){mid=mid||'msg';
+  try{
+    await uTick();
+    const bytes=XLSX.write(wbk,{bookType:type,type:'array',compression:false});
+    saveBytes(bytes,fname,ext,mid);
+    return true;
+  }catch(e){$(mid).innerHTML='<span class="err">Gagal menyimpan: '+((e&&e.message)||e)+'</span>';return false}
 }
 $('dl').onclick=()=>save('xlsx','xlsx');
 $('dl2').onclick=()=>save('xls','biff8');
@@ -2010,40 +2009,80 @@ async function uDl(force){
 }
 async function uBuild(){
   const P=U.plan,btn=$('dlu'),msg=$('msgu');btn.disabled=true;
-  setDlProg('msgu',25,'Memuat workbook record');
+  setDlProg('msgu',20,'Menyiapkan data baris record');
   await uTick();
   let ok=false;
   try{
-    const wb=await uLoad(U.rec.buf),ws=wb.getWorksheet(U.rec.sheet),byRow=new Map();
-    setDlProg('msgu',50,'Mengisi tanggal kirim & qty ke '+P.actions.length+' baris');
-    await uTick();
+    const rows=U.rec.rows.map(r=>r?r.slice():[]);
+    const byRow=new Map();
     P.actions.forEach(a=>byRow.set(a.r,{t:a.t,q:a.q}));
+    setDlProg('msgu',40,'Mengisi tanggal kirim & qty ke '+P.actions.length+' baris');
+    await uTick();
     const totAct=P.actions.length||1;
     for(let idx=0;idx<P.actions.length;idx++){
-      const a=P.actions[idx],s=U.rec.slots[a.slot];
-      if(a.wb)ws.getCell(a.r,s.w).value=a.wb;
-      const dc=ws.getCell(a.r,s.d),[y,m,d]=a.dt.split('-').map(Number);
-      dc.value=new Date(Date.UTC(y,m-1,d));
-      if(!dc.numFmt||dc.numFmt==='General')dc.numFmt='dd/mm/yyyy';
-      ws.getCell(a.r,s.q).value=a.qty;
-      if(idx>0&&idx%250===0){
-        setDlProg('msgu',50+Math.round((idx/totAct)*20),'Mengisi baris '+idx+' / '+totAct);
+      const a=P.actions[idx],s=U.rec.slots[a.slot],ri=a.r-1;
+      if(!rows[ri])rows[ri]=[];
+      if(a.wb)rows[ri][s.w-1]=a.wb;
+      rows[ri][s.d-1]=a.dt.replace(/-/g,'/');
+      rows[ri][s.q-1]=a.qty;
+      if(idx>0&&idx%500===0){
+        setDlProg('msgu',40+Math.round((idx/totAct)*25),'Mengisi baris '+idx+' / '+totAct);
         await uTick();
       }
     }
     if(U.rec.cols.out){
-      const slotCols=U.rec.slots.map(s=>uColL(s.q)),qtyCol=uColL(U.rec.cols.qty);
+      const outIdx=U.rec.cols.out-1;
       byRow.forEach((v,r)=>{
-        const f=qtyCol+r+slotCols.map(c=>'-'+c+r).join('');
-        ws.getCell(r,U.rec.cols.out).value={formula:f,result:v.q-v.t.shipped};
+        if(rows[r-1])rows[r-1][outIdx]=v.q-v.t.shipped;
       });
     }
-    wb.calcProperties={fullCalcOnLoad:true};
-    setDlProg('msgu',75,'Menyusun & mengompres file XLSX (mohon tunggu)');
+    setDlProg('msgu',70,'Menyusun XML spreadsheet (hemat memori)');
     await uTick();
-    const buf=await wb.xlsx.writeBuffer();
+    const sst=[],sidx=new Map();
+    const ss=v=>{if(!sidx.has(v)){sidx.set(v,sst.length);sst.push(v)}return sidx.get(v)};
+    const xmlRows=[];
+    const totalRows=rows.length;
+    for(let ri=0;ri<totalRows;ri++){
+      const r=rows[ri];
+      if(!r||!r.length)continue;
+      const cells=[];
+      for(let c=0;c<r.length;c++){
+        const v=r[c];
+        if(v==null||v==='')continue;
+        const ref=colLetter(c)+(ri+1);
+        if(typeof v==='number'&&isFinite(v)){
+          cells.push('<c r="'+ref+'"><v>'+v+'</v></c>');
+        }else{
+          cells.push('<c r="'+ref+'" t="s"><v>'+ss(String(v))+'</v></c>');
+        }
+      }
+      if(cells.length)xmlRows.push('<row r="'+(ri+1)+'">'+cells.join('')+'</row>');
+      if(ri>0&&ri%2500===0){
+        setDlProg('msgu',70+Math.round((ri/totalRows)*20),'Memproses baris '+ri+' / '+totalRows);
+        await uTick();
+      }
+    }
+    setDlProg('msgu',92,'Mengemas file .xlsx');
+    await uTick();
+    const shName=xesc(U.rec.sheet||'Sheet1');
+    const wsXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'+xmlRows.join('')+'</sheetData></worksheet>';
+    const sstXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="'+sst.length+'" uniqueCount="'+sst.length+'">'+sst.map(v=>'<si><t xml:space="preserve">'+xesc(v)+'</t></si>').join('')+'</sst>';
+    const wbXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'+shName+'" sheetId="1" r:id="rId1"/></sheets></workbook>';
+    const R='http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    const wbRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="'+R+'/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="'+R+'/sharedStrings" Target="sharedStrings.xml"/></Relationships>';
+    const ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>';
+    const rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="'+R+'/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+    const enc=new TextEncoder(),f=(name,x)=>({name,data:enc.encode(x)});
+    const buf=zipStore([
+      f('[Content_Types].xml',ct),
+      f('_rels/.rels',rels),
+      f('xl/workbook.xml',wbXml),
+      f('xl/_rels/workbook.xml.rels',wbRels),
+      f('xl/sharedStrings.xml',sstXml),
+      f('xl/worksheets/sheet1.xml',wsXml)
+    ]);
     const outName=U.rec.name.replace(/\.xlsx$/i,'')+'_updated';
-    saveBytes(new Uint8Array(buf),outName,'xlsx','msgu');
+    saveBytes(buf,outName,'xlsx','msgu');
     setDlProg('msgu',100,'Selesai! File '+outName+'.xlsx diunduh','ok');
     ok=true;
   }catch(er){msg.innerHTML='<span class="err">Gagal: '+uEsc((er&&er.message)||er)+'</span>'}
@@ -2391,6 +2430,9 @@ $('v_users').addEventListener('click',async e=>{
   }catch(e){}
 })();
 $('od').addEventListener('input',prog);$('od').addEventListener('blur',prog);prog();
+/* ---- Cek permintaan daftar baru (admin) ---- */
+const pollAdmin=()=>{if(me&&me.role==='admin'&&!document.hidden&&$('v_users').hidden)refreshUsers(true)};
+setInterval(pollAdmin,90000);document.addEventListener('visibilitychange',pollAdmin);
 </script>
 </body>
 </html>
