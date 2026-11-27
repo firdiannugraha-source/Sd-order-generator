@@ -1031,7 +1031,7 @@ main.stage{padding-top:20px}
 </div>
 <div class="wg wxc"><div class="wx-top"><h3>Ramalan cuaca</h3><div class="wx-ctl"><select id="wx_city" aria-label="Kota"></select><button type="button" id="wx_loc" class="g">Lokasi saya</button></div></div><div class="wx-now" id="wx_now"></div><div class="wx-days" id="wx_days"></div><div class="wx-msg" id="wx_msg">Memuat cuaca…</div></div>
 </section>
-<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span>Beta Version 1.0.3</span></footer></div>
+<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span>Beta Version 1.0.5</span></footer></div>
 </main>
 </div></div>
 
@@ -1609,7 +1609,15 @@ $('dlo').onclick=async()=>{
       if(ok)setDlProg('msg2',100,why?'File diunduh dalam format ringkas karena format asli tidak bisa dipertahankan ('+why+')':'Selesai! File OUTSTANDING_TERBARU.xlsx diunduh',why?'warn':'ok');
       return ok;
     };
-    const dl2=()=>invGuard(data.fmt==='uni'?'uni':'fici',r.invs.map(v=>({no:v.no,tgl:v.tgl,lines:v.lines})),runDl,'msg2');
+    const dl2=async()=>{
+      await invGuard(data.fmt==='uni'?'uni':'fici',r.invs.map(v=>({no:v.no,tgl:v.tgl,lines:v.lines})),runDl,'msg2');
+      // invoice yang tidak ada barisnya berhasil dikurangi tidak disimpan ke Laporan Invoice, jadi jangan dibiarkan diam-diam
+      const ex=data.inv.filter(v=>!r.invs.includes(v));
+      if(ex.length){
+        const why=ex.map(v=>{const lg=r.log.filter(l=>l.inv===v.no);return uEsc(v.no)+(lg.length&&lg.every(l=>l.skip)?' (semua baris sudah tercatat di file Outstanding)':' (tidak ada baris yang berhasil dikurangi)')});
+        $('msg2').insertAdjacentHTML('beforeend','<br><span class="warn">'+ex.length+' invoice tidak disimpan ke Laporan Invoice: '+why.join('; ')+'. Kalau tetap ingin dicatat, pakai tombol Input Invoice (Excel) di tab Laporan Invoice.</span>');
+      }
+    };
     $('out2').innerHTML='<div class="card"><b>'+r.red.size+' baris Outstanding</b> dikurangi, total <b>'+pot.toLocaleString('id-ID')+' pcs</b> dari '+data.inv.length+' invoice.<br>'+
       (sfx.length?'<span class="warn">'+sfx.length+' baris invoice memakai material code tanpa akhiran -N dibanding Outstanding, cek invoicenya (tanda kuning di bawah)</span><br>':'')+(skp.length?'<span class="ok">'+skp.length+' baris invoice sudah tercatat di file Outstanding (FICI), jadi tidak dikurangi lagi</span><br>':'')+(bad.length?'<span class="warn">'+bad.length+' baris invoice tidak terpotong penuh, lihat tanda kuning di bawah</span>':(skp.length&&!pot?'':'<span class="ok">Semua baris invoice berhasil diproses</span>'))+'<br>'+totLine(r.total,want)+'</div>'+
       '<div class="card sc scl"><table><tr><th>Invoice</th><th>Tgl kirim</th><th>PO</th><th>Material</th><th class="n">Qty</th><th class="n">Baris</th><th class="n">Sisa sebelum</th><th class="n">Sisa sesudah</th><th>Catatan</th></tr>'+
@@ -1999,7 +2007,7 @@ $('fu_inv').onchange=async e=>{
         const m=new Map();
         inv.lines.forEach(l=>{const key=uNorm(l.po)+'|'+uNorm(l.mat);if(m.has(key)){const o=m.get(key);o.qty+=l.q;o.amt+=l.amt||0}else m.set(key,{po:l.po,mc:l.mat,gn:l.item,qty:l.q,amt:l.amt||0,key,pd:''})});
         const mw=String(inv.no).match(/PA\d{10}/i),mt=String(inv.tgl).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-        U.groups.push({id:U.groups.length,label:f.name+' · invoice '+inv.no,od:inv.no,items:[...m.values()],wb:mw?mw[0].toUpperCase():'',dt:mt?mt[3]+'-'+mt[2]+'-'+mt[1]:''});
+        U.groups.push({id:U.groups.length,label:f.name+' · invoice '+inv.no,od:inv.no,items:[...m.values()],wb:mw?mw[0].toUpperCase():'',dt:mt?mt[3]+'-'+mt[2]+'-'+mt[1]:'',inv});
       }
     }
     if(!U.groups.length)throw new Error('Tidak ada data yang bisa dibaca dari file.');
@@ -2566,10 +2574,18 @@ async function uDl(force){
   const P=U.plan;if(!P||!P.actions.length)return;
   if(!force){const w=Number($('tot_u').value);if(!totOK(P.after,w)){$('msgu').innerHTML=totBlock(P.after,w)+'<button id="forceu" type="button" class="g">Tetap unduh</button>';$('forceu').onclick=()=>uDl(true);return}}
   const gs=[...new Set(P.actions.map(a=>a.g))].map(id=>U.groups.find(g=>g.id===id)).filter(Boolean);
-  const withWb=gs.filter(g=>uGet(g).wb);
-  if(!withWb.length){await uBuild();return}
-  const list=withWb.map(g=>{const i=uGet(g);return {no:i.wb,tgl:i.dt,lines:g.items.map(it=>({po:it.po,mat:it.mc,item:it.gn,q:it.qty,amt:it.amt||0,lot:/^SD/i.test(String(g.od||''))?String(g.od):''}))}});
+  // Nomor invoice diambil dari file invoice (g.wb = PA + 10 digit). Sebelumnya dibaca lewat uGet().wb yang selalu kosong,
+  // sehingga invoice SCI / UNI tidak pernah tersimpan ke Laporan Invoice.
+  const withWb=gs.filter(g=>g.wb),miss=gs.length-withWb.length;
+  const unp=U.groups.length-gs.length;
+  const warnMiss=()=>{const m=$('msgu');if(!m)return;let h='';
+    if(miss)h+='<br><span class="warn">'+miss+' dari '+gs.length+' file tidak masuk Laporan Invoice karena nomor invoice (PA + 10 digit) tidak ditemukan. Pakai file INVOICE &amp; PACKING LIST, bukan SD Order, supaya tersimpan ke laporan.</span>';
+    if(unp)h+='<br><span class="warn">'+unp+' file invoice tidak disimpan ke Laporan Invoice karena tidak ada barisnya yang berhasil dikurangi. Kalau tetap ingin dicatat, pakai tombol Input Invoice (Excel) di tab Laporan Invoice.</span>';
+    if(h)m.insertAdjacentHTML('beforeend',h)};
+  if(!withWb.length){await uBuild();warnMiss();return}
+  const list=withWb.map(g=>{const i=uGet(g);return {no:g.inv?g.inv.no:g.wb,tgl:i.dt,lines:g.inv?g.inv.lines.map(l=>({...l})):g.items.map(it=>({po:it.po,mat:it.mc,item:it.gn,q:it.qty,amt:it.amt||0,lot:/^SD/i.test(String(g.od||''))?String(g.od):''}))}});
   await invGuard(redMode==='sci'?'sci':'uni',list,uBuild,'msgu');
+  warnMiss();
 }
 async function uBuild(){
   const P=U.plan,btn=$('dlu'),msg=$('msgu');btn.disabled=true;
