@@ -1031,7 +1031,7 @@ main.stage{padding-top:20px}
 </div>
 <div class="wg wxc"><div class="wx-top"><h3>Ramalan cuaca</h3><div class="wx-ctl"><select id="wx_city" aria-label="Kota"></select><button type="button" id="wx_loc" class="g">Lokasi saya</button></div></div><div class="wx-now" id="wx_now"></div><div class="wx-days" id="wx_days"></div><div class="wx-msg" id="wx_msg">Memuat cuaca…</div></div>
 </section>
-<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span>Beta Version 1.0.5</span></footer></div>
+<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span>Beta Version 1.0.6</span></footer></div>
 </main>
 </div></div>
 
@@ -1277,9 +1277,11 @@ function mergePL(inv,sheets){
 }
 function parseInvoiceBook(sheets,fname){
   const order=[...sheets].sort((a,b)=>(/invoice/i.test(b.name)?1:0)-(/invoice/i.test(a.name)?1:0));
-  for(const sh of order){try{const inv=parseInvoice(sh.rows,fname);inv.sheet=sh.name;try{mergePL(inv,sheets)}catch(e){inv.warn=['Gagal membaca sheet Packing List: '+((e&&e.message)||e)]}return inv}catch(e){}}
+  for(const sh of order){try{const inv=parseInvoice(sh.rows,fname);inv.sheet=sh.name;try{mergePL(inv,sheets)}catch(e){inv.warn=['Gagal membaca sheet Packing List: '+((e&&e.message)||e)]}if(!/PA\d{10}/i.test(inv.no)){const f=invNoFrom(inv.wb)||invNoFrom(inv.sheet)||invNoFrom(inv.name);if(f)inv.no=f}return inv}catch(e){}}
   throw new Error('tidak ada sheet invoice dengan kolom Material Number, NO.PO, dan Qty');
 }
+// Nomor invoice yang rapi dari teks apa pun: ISPP-XXX-PAyymmddnnnn, atau PAyymmddnnnn saja
+function invNoFrom(t){const x=String(t==null?'':t);let m=/ISPP-[A-Z]+-PA\d{10}/i.exec(x);if(m)return m[0].toUpperCase();m=/PA\d{10}/i.exec(x);return m?m[0].toUpperCase():''}
 function parseInvoice(rows,fname){
   let hr=-1,mc=-1,pc=-1,qc=-1,ac=-1,pr=-1,plc=-1,lotc=-1,rmc=-1;
   for(let i=0;i<Math.min(rows.length,40)&&hr<0;i++){
@@ -1293,10 +1295,11 @@ function parseInvoice(rows,fname){
     const r=rows[i]||[];
     r.forEach((c,ci)=>{
       const k=String(c==null?'':c).toLowerCase().replace(/[\s:]+/g,'');
-      if(k!=='date'&&k!=='no.invoice'&&k!=='no.packinglist'&&k!=='packinglist')return;
+      const isD=['date','tanggal','invoicedate','tanggalinvoice','tgl'].includes(k),isN=['no.invoice','noinvoice','invoiceno','invoiceno.','invoicenumber','no.faktur','nofaktur'].includes(k);
+      if(!isD&&!isN&&k!=='no.packinglist'&&k!=='packinglist')return;
       for(let j=ci+1;j<r.length;j++)if(r[j]!=null&&String(r[j]).trim()!==''){
-        if(k==='date'&&!tgl)tgl=fmtTgl(r[j]);
-        if(k==='no.invoice'&&!no)no=String(r[j]).trim();
+        if(isD&&!tgl)tgl=fmtTgl(r[j]);
+        if(isN&&!no)no=String(r[j]).trim();
         if((k==='no.packinglist'||k==='packinglist')&&!plInv)plInv=String(r[j]).trim();
         break}
     });
@@ -1312,7 +1315,8 @@ function parseInvoice(rows,fname){
     lines.push({po,mat,q,amt,item:String(r[pc+1]==null?'':r[pc+1]).trim(),pl:sv(plc)||plInv,lot:sv(lotc),rem:sv(rmc)});
   }
   if(!lines.length)throw new Error('tidak ada baris barang');
-  return {name:fname,no:no||fname,tgl,lines};
+  if(!invNoFrom(no)){for(let i=0;i<hr&&!invNoFrom(no);i++)(rows[i]||[]).forEach(c=>{if(!invNoFrom(no)&&invNoFrom(c))no=invNoFrom(c)})}
+  return {name:fname,no:invNoFrom(no)||invNoFrom(fname)||no||fname,tgl,lines};
 }
 function updInv(){
   const n=data.inv.length,q=data.inv.reduce((a,v)=>a+v.lines.reduce((x,l)=>x+l.q,0),0);
@@ -2120,7 +2124,14 @@ async function invSave(co,ents,mid){
   if(!ents.length)return;const el=$(mid),add=h=>{el.insertAdjacentHTML('beforeend','<br>'+h)};
   try{
     const r=await api('inv_save',{company:co,invoices:ents},120000),sv=r.saved||[];
-    if(sv.length)add('<span class="ok">✓ '+sv.length+' invoice tersimpan di sheet '+co.toUpperCase()+': '+sv.map(uEsc).join(', ')+'</span>');
+    if(sv.length){
+      const ms=[...new Set(ents.filter(e=>sv.includes(e.id)).map(e=>e.date.slice(0,7)))].map(monLabel).join(', ');
+      add('<span class="ok">✓ '+sv.length+' invoice tersimpan di sheet '+co.toUpperCase()+': '+sv.map(uEsc).join(', ')+' (lihat di Laporan Invoice → '+co.toUpperCase()+', bulan '+ms+')</span>');
+      try{
+        const ck=await api('inv_check',{company:co,ids:sv}),nf=sv.filter(id=>!(ck.dups||[]).includes(id));
+        if(nf.length)add('<span class="warn">'+nf.length+' invoice dijawab tersimpan tapi belum terbaca di sheet '+co.toUpperCase()+': '+nf.map(uEsc).join(', ')+'. Cek skrip Apps Script (sheet dan kode '+co.toUpperCase()+') lalu coba lagi.</span>');
+      }catch(e){}
+    }
     (r.dups||[]).forEach(id=>add('<span class="err">'+uEsc(id)+' sudah ada di sheet, tidak disimpan dua kali</span>'));
     (r.errors||[]).forEach(x=>add('<span class="err">'+uEsc(x)+'</span>'));
     ents.filter(e=>sv.includes(e.id)&&!e.lines.some(l=>l.amt>0)).forEach(e=>add('<span class="warn">'+uEsc(e.id)+': kolom nominal (amount / price) tidak terbaca di file invoice, nominal tersimpan 0</span>'));
@@ -2583,7 +2594,7 @@ async function uDl(force){
     if(unp)h+='<br><span class="warn">'+unp+' file invoice tidak disimpan ke Laporan Invoice karena tidak ada barisnya yang berhasil dikurangi. Kalau tetap ingin dicatat, pakai tombol Input Invoice (Excel) di tab Laporan Invoice.</span>';
     if(h)m.insertAdjacentHTML('beforeend',h)};
   if(!withWb.length){await uBuild();warnMiss();return}
-  const list=withWb.map(g=>{const i=uGet(g);return {no:g.inv?g.inv.no:g.wb,tgl:i.dt,lines:g.inv?g.inv.lines.map(l=>({...l})):g.items.map(it=>({po:it.po,mat:it.mc,item:it.gn,q:it.qty,amt:it.amt||0,lot:/^SD/i.test(String(g.od||''))?String(g.od):''}))}});
+  const list=withWb.map(g=>{const i=uGet(g);return {no:(g.inv&&/PA\d{10}/i.test(g.inv.no))?g.inv.no:g.wb,tgl:i.dt,lines:g.inv?g.inv.lines.map(l=>({...l})):g.items.map(it=>({po:it.po,mat:it.mc,item:it.gn,q:it.qty,amt:it.amt||0,lot:/^SD/i.test(String(g.od||''))?String(g.od):''}))}});
   await invGuard(redMode==='sci'?'sci':'uni',list,uBuild,'msgu');
   warnMiss();
 }
