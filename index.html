@@ -475,7 +475,7 @@ a.btn{background:var(--lime);color:var(--ink);border-radius:999px;box-shadow:non
   body.in .widgets{grid-template-columns:minmax(250px,1fr) 220px minmax(0,1.7fr)}
 }
 @media (min-width:900px) and (max-width:1279px){
-  body.in .widgets>.wg:last-child{grid-column:1/-1}
+  body.in .widgets>.wstack:last-child{grid-column:1/-1}
 }
 .wx-days{grid-template-columns:repeat(auto-fit,minmax(86px,1fr))}
 .wx-d{min-width:0;overflow:hidden}
@@ -517,7 +517,7 @@ body:not(.in) main.stage{padding-top:4px}
 .wxc .wx-d .r{font-size:13px}
 @media (min-width:900px){
   body.in .widgets{grid-template-columns:minmax(280px,380px) minmax(0,1fr)}
-  body.in .widgets>.wg:last-child{grid-column:auto}
+  body.in .widgets>.wstack:last-child{grid-column:auto}
 }
 
 /* ===== Halaman login STO Hub ===== */
@@ -821,12 +821,65 @@ main.stage{padding-top:20px}
 .sp-leg li b{color:var(--ink)}
 #sp_check{width:100%;margin:0;padding:9px 14px;font-size:13px}
 @media (max-width:899px){.synclbl{display:none}.syncbtn{padding:11px}}
+
+/* ---- Popup peringatan versi Beta (setelah login) ---- */
+.bmask{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(20,20,18,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.bmask[hidden]{display:none}
+.bbox{position:relative;width:min(640px,100%);max-height:calc(100vh - 32px);overflow:auto;box-sizing:border-box;padding:26px 30px 24px;border-radius:28px;background:#fff;color:#14142b;box-shadow:0 30px 80px rgba(0,0,0,.30);text-align:left;animation:bpop .22s ease-out}
+@keyframes bpop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.bclose{position:absolute;top:16px;right:20px;display:inline-flex;align-items:center;gap:6px;padding:4px 2px;border:0;background:transparent;color:#6b7080;font:500 14px/1 inherit;cursor:pointer}
+.bclose:hover{color:#14142b}
+.bico{display:flex;justify-content:center;margin:2px 0 6px}
+.bico svg{width:92px;height:92px}
+.btitle{margin:0 0 12px;text-align:center;font:800 26px/1.2 "Manrope",system-ui,sans-serif}
+.btext{margin:0 0 14px;font-size:15px;line-height:1.55}
+.bwarn{margin:0 0 16px;font-size:15px;line-height:1.5;font-weight:800}
+.blog{max-height:190px;overflow:auto;padding:14px 16px;border-radius:16px;background:#eceef6;border:1px solid #d9dcea}
+.blog h3{margin:0 0 8px;font:800 16px/1.3 "Manrope",system-ui,sans-serif}
+.blog ul{margin:0;padding-left:22px;font-size:14.5px;line-height:1.55}
+.blog li{margin:2px 0}
+.bact{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:20px}
+.bact button{height:46px;padding:0 22px;border-radius:12px;font:700 15px/1 inherit;cursor:pointer}
+.bok{border:0;background:#2563eb;color:#fff;box-shadow:0 0 0 3px #2f9e5e}
+.bok:hover{background:#1d4fd0}
+.bfb{border:1px solid #d9dcea;background:#fff;color:#14142b;font-weight:600}
+.bfb:hover{background:#f3f5fd}
+body.dark .bbox{background:#1f2019;color:#f2f2ec}
+body.dark .bclose{color:#a8a89e}body.dark .bclose:hover{color:#fff}
+body.dark .blog{background:#2a2b23;border-color:rgba(255,255,255,.12)}
+body.dark .bfb{background:#2a2b23;border-color:rgba(255,255,255,.16);color:#f2f2ec}
+@media (max-width:520px){.bbox{padding:22px 18px 18px;border-radius:22px}.btitle{font-size:21px}.bact button{flex:1 1 100%}}
+
+/* ---- Widget cuaca mode stack + kalkulator ---- */
+.wstack{position:relative;display:grid;min-width:0;padding-bottom:42px}
+.wstack>.wg{grid-area:1/1;min-width:0;transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .3s,filter .3s;touch-action:pan-y;will-change:transform;-webkit-user-select:none;user-select:none}
+.wstack>.wg[data-pos="0"]{z-index:3;cursor:grab}
+.wstack>.wg[data-pos="0"].drag{cursor:grabbing}
+.wstack>.wg[data-pos="1"]{z-index:2;transform:translateY(22px) scale(.95);filter:brightness(.88);pointer-events:none}
+.sdots{position:absolute;left:0;right:0;bottom:4px;display:flex;justify-content:center;gap:8px}
+.widgets .sdots .sdot{margin:0;padding:6px 14px;border:1px solid var(--bd);border-radius:999px;background:transparent;color:var(--mut);font:700 12px/1 "Manrope",sans-serif;box-shadow:none;cursor:pointer}
+.widgets .sdots .sdot.on{background:var(--olive);border-color:var(--olive);color:#fff}
+.calc{display:flex;flex-direction:column;gap:10px;outline:none}
+.calc h3{margin:0}
+.cdisp{display:flex;flex-direction:column;justify-content:flex-end;min-height:66px;padding:10px 14px;border-radius:14px;background:rgba(0,0,0,.2);text-align:right;overflow:hidden}
+.cexp{min-height:16px;font-size:13px;color:#cfcec5;word-break:break-all}
+.cres{font:800 30px/1.15 "Manrope",sans-serif;word-break:break-all}
+.ckeys{flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:minmax(38px,1fr);gap:8px}
+.widgets .ckeys button{margin:0;padding:0;border:0;border-radius:12px;background:rgba(255,255,255,.14);color:#fff;font:700 18px/1 "Manrope",sans-serif;box-shadow:none;cursor:pointer}
+.widgets .ckeys button:hover{background:rgba(255,255,255,.26)}
+.widgets .ckeys button:active{transform:scale(.96)}
+.widgets .ckeys .op{background:rgba(255,255,255,.26)}
+.widgets .ckeys .fn{color:var(--lime)}
+.widgets .ckeys .z{grid-column:span 2}
+.widgets .ckeys .eq{background:var(--lime);color:var(--ink)}
+.widgets .ckeys .eq:hover{background:#e3ea2a}
+body.dark .widgets .sdots .sdot.on{background:#2b2d25;border-color:var(--line)}
 </style>
 </head>
 <body>
 <script>try{if(localStorage.getItem('sto_dark')==='1')document.body.classList.add('dark')}catch(e){}</script>
 <div id="boot" role="status" aria-live="polite"><svg class="lg" viewBox="0 0 100 100" aria-hidden="true"><use href="#stoLogo"/></svg><b>STO Hub</b><div class="sp" aria-hidden="true"></div><small id="boot_t">Memuat…</small></div>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="stoLogo" viewBox="0 0 100 100"><rect width="100" height="100" rx="28" fill="#e9f04b"/><path d="M20 40 44 30 68 40 44 51Z" fill="#2a2a26"/><path d="M20 40 44 51V82L20 70Z" fill="#2a2a26"/><path d="M44 51 68 40V70L44 82Z" fill="#2a2a26"/><path d="M20 40 44 51 68 40M44 51V82" fill="none" stroke="#e9f04b" stroke-width="2.4" stroke-linejoin="round"/><path d="M30 37.5 50 46.5M36 35 56 44" stroke="#e9f04b" stroke-width="2.6" stroke-linecap="round"/><path d="M66 14 69 23M75 22 83 18" stroke="#2a2a26" stroke-width="4" stroke-linecap="round"/><circle cx="70" cy="72" r="17" fill="#f8f4e6"/><path d="M62 72.5 68.5 79 79 65.5" fill="none" stroke="#2a2a26" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></symbol></defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="stoLogo" viewBox="0 0 100 100"><rect width="100" height="100" rx="28" fill="#e9f04b"/><path d="M20 40 44 30 68 40 44 51Z" fill="#2a2a26"/><path d="M20 40 44 51V82L20 70Z" fill="#2a2a26"/><path d="M44 51 68 40V70L44 82Z" fill="#2a2a26"/><path d="M20 40 44 51 68 40M44 51V82" fill="none" stroke="#e9f04b" stroke-width="2.4" stroke-linejoin="round"/><path d="M30 37.5 50 46.5M36 35 56 44" stroke="#e9f04b" stroke-width="2.6" stroke-linecap="round"/><path d="M66 14 69 23M75 22 83 18" stroke="#2a2a26" stroke-width="4" stroke-linecap="round"/><circle cx="70" cy="72" r="17" fill="#f8f4e6"/><path d="M62 72.5 68.5 79 79 65.5" fill="none" stroke="#2a2a26" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></symbol><symbol id="stoLogoGray" viewBox="0 0 100 100"><rect width="100" height="100" rx="28" fill="#9ca3af"/><path d="M20 40 44 30 68 40 44 51Z" fill="#374151"/><path d="M20 40 44 51V82L20 70Z" fill="#374151"/><path d="M44 51 68 40V70L44 82Z" fill="#374151"/><path d="M20 40 44 51 68 40M44 51V82" fill="none" stroke="#9ca3af" stroke-width="2.4" stroke-linejoin="round"/><path d="M30 37.5 50 46.5M36 35 56 44" stroke="#9ca3af" stroke-width="2.6" stroke-linecap="round"/><path d="M66 14 69 23M75 22 83 18" stroke="#374151" stroke-width="4" stroke-linecap="round"/><circle cx="70" cy="72" r="17" fill="#f3f4f6"/><path d="M62 72.5 68.5 79 79 65.5" fill="none" stroke="#374151" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></symbol></defs></svg>
 <div class="frame"><div class="shell">
 <aside class="nav" id="nav">
 <div class="brand"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#stoLogo"/></svg><div><b>STO Hub</b><small>One Workspace. Every Workflow.</small></div></div>
@@ -896,7 +949,7 @@ main.stage{padding-top:20px}
 <div id="done" hidden></div>
 <div id="amsg" class="f" role="status"></div>
 </div></div>
-<footer class="afoot">&copy; <span id="yr2">2026</span> Laras Gita Milenia &middot; <span class="appver">v1.0.7 Beta</span></footer>
+<footer class="afoot">&copy; <span id="yr2">2026</span> Laras Gita Milenia<span class="aver"> &middot; v1.0.9 Beta</span></footer>
 </section>
 
 <section id="v_app" hidden>
@@ -1024,17 +1077,40 @@ main.stage{padding-top:20px}
 <div id="umsg" class="f" role="status"></div>
 </section>
 
-<section class="widgets" id="widgets" aria-label="Kalender, jam, dan cuaca">
+<section class="widgets" id="widgets" aria-label="Kalender, jam, cuaca, dan kalkulator">
 <div class="wleft">
 <div class="wg"><h3><span id="cal_t">Kalender</span><span class="cal-nav"><button type="button" id="cal_p" aria-label="Bulan sebelumnya">&lsaquo;</button><button type="button" id="cal_n" aria-label="Bulan berikutnya">&rsaquo;</button></span></h3><div class="cal" id="cal"></div></div>
 <div class="wg clockwrap"><svg viewBox="0 0 200 200" role="img" aria-label="Jam analog"><circle cx="100" cy="100" r="94" fill="var(--paper)" stroke="var(--ink)" stroke-width="4"/><g id="ck_ticks"></g><line id="ck_h" x1="100" y1="100" x2="100" y2="58" stroke="var(--ink)" stroke-width="7" stroke-linecap="round"/><line id="ck_m" x1="100" y1="100" x2="100" y2="34" stroke="var(--ink)" stroke-width="4.5" stroke-linecap="round"/><line id="ck_s" x1="100" y1="112" x2="100" y2="26" stroke="var(--err)" stroke-width="2" stroke-linecap="round"/><circle cx="100" cy="100" r="6" fill="var(--ink)"/></svg><div class="dig" id="ck_d"></div></div>
 </div>
-<div class="wg wxc"><div class="wx-top"><h3>Ramalan cuaca</h3><div class="wx-ctl"><select id="wx_city" aria-label="Kota"></select><button type="button" id="wx_loc" class="g">Lokasi saya</button></div></div><div class="wx-now" id="wx_now"></div><div class="wx-days" id="wx_days"></div><div class="wx-msg" id="wx_msg">Memuat cuaca…</div></div>
+<div class="wstack" id="wstack">
+<div class="wg wxc" data-pos="0" id="wxcard"><div class="wx-top"><h3>Ramalan cuaca</h3><div class="wx-ctl"><select id="wx_city" aria-label="Kota"></select><button type="button" id="wx_loc" class="g">Lokasi saya</button></div></div><div class="wx-now" id="wx_now"></div><div class="wx-days" id="wx_days"></div><div class="wx-msg" id="wx_msg">Memuat cuaca…</div></div>
+<div class="wg calc" data-pos="1" id="calc" aria-label="Kalkulator">
+<h3>Kalkulator</h3>
+<div class="cdisp" aria-live="polite"><div class="cexp" id="c_exp"></div><div class="cres" id="c_res">0</div></div>
+<div class="ckeys" id="c_keys">
+<button type="button" data-k="C" class="fn">C</button><button type="button" data-k="B" class="fn" aria-label="Hapus">&#9003;</button><button type="button" data-k="%" class="fn">%</button><button type="button" data-k="&divide;" class="op">&divide;</button>
+<button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button><button type="button" data-k="&times;" class="op">&times;</button>
+<button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button><button type="button" data-k="&minus;" class="op">&minus;</button>
+<button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button><button type="button" data-k="+" class="op">+</button>
+<button type="button" data-k="0" class="z">0</button><button type="button" data-k=".">.</button><button type="button" data-k="=" class="eq">=</button>
+</div></div>
+<div class="sdots" role="tablist" aria-label="Pilih widget"><button type="button" class="sdot on" data-i="0" role="tab" aria-selected="true">Cuaca</button><button type="button" class="sdot" data-i="1" role="tab" aria-selected="false">Kalkulator</button></div>
+</div>
 </section>
-<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span class="appver">v1.0.7 Beta</span></footer></div>
+<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span>v1.0.9 Beta</span></footer></div>
 </main>
 </div></div>
 
+<div class="bmask" id="beta_mask" role="dialog" aria-modal="true" aria-labelledby="beta_t" hidden>
+<div class="bbox">
+<button type="button" class="bclose" id="beta_x" aria-label="Tutup">Tutup <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
+<div class="bico"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="58" cy="40" r="34" fill="#2f9e5e"/><rect x="54" y="16" width="9" height="30" rx="4.5" fill="#fff"/><circle cx="58.5" cy="56" r="5" fill="#fff"/><circle cx="76" cy="72" r="17" fill="#e9f04b"/><rect x="73.2" y="61" width="5.6" height="14" rx="2.8" fill="#2a2a26"/><circle cx="76" cy="81" r="3.2" fill="#2a2a26"/><use href="#stoLogoGray" x="8" y="44" width="38" height="38"/></svg></div>
+<h2 class="btitle" id="beta_t">Aplikasi Masih dalam Versi Beta</h2>
+<p class="btext">Terima kasih telah menggunakan aplikasi kami! Harap diingat bahwa aplikasi ini masih dalam tahap uji coba (Beta). Beberapa fitur mungkin belum sepenuhnya stabil, dan hasil atau data yang diberikan bisa saja mengandung kekeliruan.</p>
+<p class="bwarn">&#9888;&#65039; Selalu periksa dan verifikasi kembali setiap hasil yang Anda peroleh sebelum menggunakannya untuk kebutuhan penting.</p>
+<div class="blog"><h3 id="beta_h"></h3><ul id="beta_l"></ul></div>
+<div class="bact"><button type="button" class="bok" id="beta_ok">Saya Mengerti &amp; Lanjutkan</button><button type="button" class="bfb" id="beta_fb">Beri Masukan (Feedback)</button></div>
+</div></div>
 <script>
 const $=id=>document.getElementById(id);
 const uTick=()=>new Promise(r=>setTimeout(r,40));
@@ -1221,19 +1297,14 @@ function fmtTgl(v){
 // Sheet Packing List (PL) di file INVOICE & PACKING LIST: No. Packing List, No. Shipping (waybill), Shipping Date, dan No Lot per baris
 function parsePL(rows){
   const nz=c=>String(c==null?'':c).toLowerCase().replace(/[\s:]+/g,'');
-  const SD=/^SD\d{10}$/i;
   let hr=-1,ci=null;
-  for(let i=0;i<Math.min(rows.length,80)&&hr<0;i++){
+  for(let i=0;i<Math.min(rows.length,60)&&hr<0;i++){
     const lc=(rows[i]||[]).map(nz);
-    const q=lc.findIndex(x=>x.startsWith('qty')||x.startsWith('quantity'));
-    const l=lc.findIndex(x=>x.includes('lot')||x.includes('batch'));
-    const n=lc.findIndex((x,k)=>k!==l&&(x.startsWith('name')||x.includes('product')||x.includes('spec')||x.includes('description')||x.includes('goods')||x.includes('item')));
+    const q=lc.findIndex(x=>x.startsWith('qty')),l=lc.findIndex(x=>x.includes('lot')),n=lc.findIndex(x=>x.startsWith('name'));
     if(q>=0&&l>=0&&n>=0){hr=i;ci={q,l,n,r:lc.findIndex(x=>x==='remark'||x==='remarks')}}
   }
   if(hr<0)return null;
-  const info={},KEY={'no.packinglist':'pl','nopackinglist':'pl','packinglistno':'pl','packinglistno.':'pl','packinglist':'pl','plno':'pl','pl.no':'pl','no.pl':'pl','nopl':'pl',
-    'no.shipping':'wb','noshipping':'wb','shippingno':'wb','no.waybill':'wb','nowaybill':'wb','waybill':'wb','waybillno':'wb',
-    'shippingdate':'dt','tanggalkirim':'dt','tanggalpengiriman':'dt'};
+  const info={},KEY={'no.packinglist':'pl','packinglist':'pl','no.shipping':'wb','shippingdate':'dt'};
   for(let i=0;i<hr;i++){
     const r=rows[i]||[];
     r.forEach((c,k)=>{
@@ -1241,21 +1312,13 @@ function parsePL(rows){
       for(let j=k+1;j<r.length;j++){const v=r[j];if(v!=null&&String(v).trim()!==''){info[f]=String(v).trim().replace(/^[:\s]+/,'');break}}
     });
   }
-  // cadangan: cari polanya langsung, mis. 1157/ISPP-MRKT-PL/XI/2026 dan PA2611020002
-  for(let i=0;i<hr&&(!info.pl||!info.wb);i++)(rows[i]||[]).forEach(c=>{
-    const t=String(c==null?'':c);let m;
-    if(!info.pl&&(m=/\d{1,6}\/ISPP-[A-Z-]*PL\/[A-Z0-9]+\/\d{4}/i.exec(t)))info.pl=m[0];
-    if(!info.wb&&(m=/PA\d{10}/i.exec(t)))info.wb=m[0].toUpperCase();
-  });
   const lines=[];
   for(let i=hr+1;i<rows.length;i++){
     const r=rows[i]||[],name=String(r[ci.n]==null?'':r[ci.n]).trim();
     if(/^(sub\s*)?total/i.test(name))break;
     const q=num(r[ci.q]);
     if(!name||q<=0)continue;
-    let lot=String(r[ci.l]==null?'':r[ci.l]).trim();
-    if(!lot){const f=r.find(c=>SD.test(String(c==null?'':c).trim()));if(f)lot=String(f).trim()}
-    lines.push({name,q,lot,rem:ci.r>=0&&r[ci.r]!=null?String(r[ci.r]).trim():''});
+    lines.push({name,q,lot:String(r[ci.l]==null?'':r[ci.l]).trim(),rem:ci.r>=0&&r[ci.r]!=null?String(r[ci.r]).trim():''});
   }
   return {info,lines};
 }
@@ -1268,25 +1331,22 @@ function mergePL(inv,sheets){
     if(pl.info.wb)inv.wb=pl.info.wb;
     if(!inv.tgl&&pl.info.dt)inv.tgl=pl.info.dt;
     const nm=t=>String(t==null?'':t).toLowerCase().replace(/[\s"'\uFF1E\uFF1C<>]/g,''),used=new Array(pl.lines.length).fill(false);
-    const sameLen=inv.lines.length===pl.lines.length;let byOrder=0,byQty=0,none=0,ptr=0;
+    const sameLen=inv.lines.length===pl.lines.length;let byOrder=0,none=0;
     inv.lines.forEach((L,i)=>{
       let k=-1;
       if(i<pl.lines.length&&!used[i]&&pl.lines[i].q===L.q&&nm(pl.lines[i].name)===nm(L.item))k=i;
       else k=pl.lines.findIndex((x,j)=>!used[j]&&x.q===L.q&&nm(x.name)===nm(L.item));
       if(k<0&&sameLen&&!used[i]){k=i;byOrder++}
-      if(k<0){k=pl.lines.findIndex((x,j)=>!used[j]&&j>=ptr&&x.q===L.q);if(k>=0)byQty++}
       if(k<0){none++;return}
-      used[k]=true;ptr=k+1;
+      used[k]=true;
       if(!L.lot)L.lot=pl.lines[k].lot;
       if(!L.rem)L.rem=pl.lines[k].rem;
     });
     if(byOrder)warn.push(byOrder+' baris dipasangkan dengan Packing List berdasarkan urutan (nama atau qty tidak persis sama)');
-    if(byQty)warn.push(byQty+' baris dipasangkan dengan Packing List berdasarkan qty dan urutan (nama tidak sama)');
     if(none)warn.push(none+' baris invoice tidak ketemu pasangannya di Packing List, lot dikosongkan');
     const nolot=inv.lines.filter(l=>!l.lot).length;
     if(nolot&&!none)warn.push(nolot+' baris Packing List tanpa nomor lot');
-    if(!inv.pl)warn.push('No. Packing List tidak terbaca di sheet Packing List');
-  }else warn.push('Sheet Packing List tidak terbaca, No. Packing List dan Production Lot dikosongkan (sheet di file: '+sheets.map(x=>x.name).join(', ')+'). Pastikan ada sheet dengan kolom Name, No Lot, dan Qty');
+  }else warn.push('Sheet Packing List tidak ditemukan, No. Packing List dan Production Lot dikosongkan');
   inv.wb=inv.wb||suf;
   inv.lines.forEach(L=>{if(!L.pl)L.pl=inv.pl||'';L.wb=inv.wb});
   inv.warn=warn;
@@ -1354,7 +1414,7 @@ $('fi').onchange=async()=>{
         else{msgs.push('<span class="warn">'+f.name+' dilewati, nomor invoice sama dengan '+data.inv[dup].name+' yang lebih baru</span>');continue}
       }
       data.inv.push(inv);
-      msgs.push('<span class="ok">✓ '+inv.no+'</span> ('+inv.lines.length+' baris, '+inv.lines.reduce((a,l)=>a+l.q,0).toLocaleString('id-ID')+' pcs, kirim '+(inv.tgl||'tanggal tidak terbaca')+')'+(inv.warn||[]).map(w=>'<br><span class="warn">'+uEsc(w)+'</span>').join(''));
+      msgs.push('<span class="ok">✓ '+inv.no+'</span> ('+inv.lines.length+' baris, '+inv.lines.reduce((a,l)=>a+l.q,0).toLocaleString('id-ID')+' pcs, kirim '+(inv.tgl||'tanggal tidak terbaca')+')');
     }catch(e){msgs.push('<span class="err">'+f.name+': '+e.message+'</span>')}
   }
   info.innerHTML=msgs.join('<br>');
@@ -2032,7 +2092,7 @@ $('fu_inv').onchange=async e=>{
     }
     if(!U.groups.length)throw new Error('Tidak ada data yang bisa dibaca dari file.');
   }catch(er){U.groups=[];$('u_grp').textContent='Muncul setelah invoice diunggah.';info.innerHTML='<span class="err">'+uEsc(er.message||er)+'</span>';uniRefresh();return}
-  info.innerHTML='<span class="ok">✓ '+U.groups.length+' kelompok</span> ('+uFmt(U.groups.reduce((a,g)=>a+g.items.length,0))+' item)'+U.groups.filter(g=>g.inv&&g.inv.warn&&g.inv.warn.length).map(g=>'<br><span class="warn">'+uEsc(g.inv.no)+': '+g.inv.warn.map(uEsc).join('; ')+'</span>').join('');
+  info.innerHTML='<span class="ok">✓ '+U.groups.length+' kelompok</span> ('+uFmt(U.groups.reduce((a,g)=>a+g.items.length,0))+' item)';
   $('u_grp').innerHTML=U.groups.map(g=>'<div style="border-top:1px solid var(--line,#e3e6ee);padding:8px 0"><div>'+uEsc(g.label)+'</div><div class="f">'+g.items.length+' item · total qty '+uFmt(g.items.reduce((a,b)=>a+b.qty,0))+'</div>'+
     '<input type="date" data-ug="'+g.id+'" data-k="dt" value="'+(g.dt||uToday())+'" style="width:100%;margin-top:6px;box-sizing:border-box"></div>').join('');
   document.querySelectorAll('#u_grp input').forEach(i=>i.oninput=uniRefresh);
@@ -2909,14 +2969,145 @@ function view(v){
     view._t=setTimeout(()=>{$('v_'+cur).classList.remove('page-leave');apply()},160);
   }else{apply()}
 }
+/* ---- Popup peringatan Beta + changelog (diperbarui tiap versi) ---- */
+const APP_VER='1.0.9-beta';
+const CHANGELOG=[
+  '[Baru] Widget cuaca kini berbentuk tumpukan (stack); geser kartu untuk beralih ke kalkulator.',
+  '[Baru] Kalkulator sederhana (+, −, ×, ÷, %) yang bisa dipakai lewat tombol maupun keyboard.',
+  '[Perbaikan] Ikon popup peringatan Beta disesuaikan dengan tema (hijau) dan memakai logo STO Hub abu-abu.',
+  '[Peringatan Beta] Hasil dan data yang ditampilkan masih bisa mengandung kekeliruan; harap cek kembali angkanya.'
+];
+function betaOpen(){
+  try{if(sessionStorage.getItem('sto_beta_ack'))return}catch(e){}
+  $('beta_h').textContent='Catatan Perubahan (Changelog) - Versi '+APP_VER;
+  $('beta_l').innerHTML=CHANGELOG.map(t=>'<li>'+esc(t)+'</li>').join('');
+  $('beta_mask').hidden=false;$('beta_ok').focus();
+}
+function betaClose(){
+  $('beta_mask').hidden=true;
+  try{sessionStorage.setItem('sto_beta_ack','1')}catch(e){}
+}
+$('beta_ok').onclick=betaClose;
+$('beta_x').onclick=betaClose;
+$('beta_mask').addEventListener('click',e=>{if(e.target===$('beta_mask'))betaClose()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('beta_mask').hidden)betaClose()});
+$('beta_fb').onclick=()=>{
+  const t='Halo Admin, saya ingin memberi masukan untuk STO Hub (v'+APP_VER+').'+(me&&me.username?'\nUsername: '+me.username:'')+'\nMasukan: ';
+  window.open('https://wa.me/'+ADMIN_WA+'?text='+encodeURIComponent(t),'_blank','noopener');
+};
+/* ---- Widget stack: cuaca <-> kalkulator ---- */
+(function(){
+  const stack=$('wstack');if(!stack)return;
+  const cards=[$('wxcard'),$('calc')],dots=[...stack.querySelectorAll('.sdot')];
+  let cur=0,busy=false;
+  function paint(){
+    cards.forEach((c,i)=>{c.dataset.pos=i===cur?0:1;c.inert=i!==cur;c.setAttribute('aria-hidden',i!==cur?'true':'false')});
+    dots.forEach((d,i)=>{d.classList.toggle('on',i===cur);d.setAttribute('aria-selected',i===cur)});
+  }
+  function flip(dir){
+    if(busy)return;busy=true;
+    const top=cards[cur],nxt=cards[1-cur];
+    top.style.transition='transform .3s ease,opacity .3s ease';
+    top.style.transform='translateX('+(dir*115)+'%) rotate('+(dir*8)+'deg)';top.style.opacity='0';
+    setTimeout(()=>{
+      top.style.transition='none';top.style.transform='';top.style.opacity='';
+      cur=1-cur;paint();void top.offsetWidth;top.style.transition='';busy=false;
+    },300);
+  }
+  function go(i){if(i!==cur)flip(i>cur?-1:1)}
+  dots.forEach(d=>d.addEventListener('click',()=>go(+d.dataset.i)));
+  let sx=0,dx=0,drag=false;
+  stack.addEventListener('pointerdown',e=>{
+    const top=cards[cur];
+    if(busy||!top.contains(e.target)||e.target.closest('button,select,input,a'))return;
+    drag=true;sx=e.clientX;dx=0;top.classList.add('drag');top.style.transition='none';
+    try{top.setPointerCapture(e.pointerId)}catch(_){}
+  });
+  stack.addEventListener('pointermove',e=>{
+    if(!drag)return;const top=cards[cur];dx=e.clientX-sx;
+    top.style.transform='translateX('+dx+'px) rotate('+(dx/45)+'deg)';top.style.opacity=String(1-Math.min(Math.abs(dx)/420,.5));
+  });
+  function end(){
+    if(!drag)return;drag=false;const top=cards[cur];top.classList.remove('drag');
+    if(Math.abs(dx)>70){top.style.transition='';flip(dx<0?-1:1)}
+    else{top.style.transition='';top.style.transform='';top.style.opacity=''}
+    dx=0;
+  }
+  stack.addEventListener('pointerup',end);stack.addEventListener('pointercancel',end);
+  stack.addEventListener('keydown',e=>{
+    if(e.target.closest('select,input'))return;
+    if(e.key==='ArrowRight'&&cur===0&&!e.target.closest('#calc')){go(1)}
+    else if(e.key==='ArrowLeft'&&cur===1&&!e.target.closest('#calc')){go(0)}
+  });
+  paint();
+
+  /* kalkulator (tanpa eval) */
+  function calcEval(str){
+    const t=str.replace(/\s/g,'');let i=0;
+    const fail=()=>{throw new Error('x')};
+    function factor(){
+      let neg=false;while(t[i]==='\u2212'){neg=!neg;i++}
+      const m=/^(\d+\.?\d*|\.\d+)/.exec(t.slice(i));if(!m)fail();
+      i+=m[0].length;let v=parseFloat(m[0]);while(t[i]==='%'){v/=100;i++}
+      return neg?-v:v;
+    }
+    function term(){let v=factor();while(t[i]==='\u00d7'||t[i]==='\u00f7'){const o=t[i++],r=factor();if(o==='\u00d7')v*=r;else{if(r===0)fail();v/=r}}return v}
+    function expr(){let v=term();while(t[i]==='+'||t[i]==='\u2212'){const o=t[i++],r=term();v=o==='+'?v+r:v-r}return v}
+    const v=expr();if(i!==t.length)fail();
+    return parseFloat(v.toPrecision(12));
+  }
+  let ex='',done=false;
+  const isOp=c=>'+\u2212\u00d7\u00f7'.includes(c);
+  function show(){
+    $('c_res').textContent=ex||'0';
+    let pv='';
+    if(!done&&/[+\u2212\u00d7\u00f7]/.test(ex.replace(/^\u2212/,''))){try{pv='= '+calcEval(ex)}catch(_){}}
+    $('c_exp').textContent=pv;
+  }
+  function press(k){
+    const last=ex.slice(-1);
+    if(k==='C'){ex='';done=false}
+    else if(k==='B'){ex=done?'':ex.slice(0,-1);done=false}
+    else if(k==='='){
+      if(!ex)return;
+      try{const r=calcEval(ex);const old=ex;ex=String(r);done=true;show();$('c_exp').textContent=old+' =';return}
+      catch(_){$('c_exp').textContent='Format tidak valid';return}
+    }else if(isOp(k)){
+      if(!ex){if(k==='\u2212')ex='\u2212';done=false}
+      else{done=false;if(isOp(last)){if(ex.length>1)ex=ex.slice(0,-1)+k}else if(last!=='.'&&last!=='\u2212')ex+=k}
+    }else if(k==='%'){
+      if(/[\d%]/.test(last)){done=false;ex+='%'}
+    }else if(k==='.'){
+      if(done){ex='0.';done=false}
+      else{const seg=/[\d.]*$/.exec(ex)[0];if(seg.includes('.'))return;ex+=seg===''?'0.':'.'}
+    }else{ /* angka */
+      if(done){ex=k;done=false}else if(ex==='0')ex=k;else ex+=k;
+    }
+    show();
+  }
+  $('c_keys').addEventListener('click',e=>{const b=e.target.closest('button');if(b)press(b.dataset.k)});
+  $('calc').addEventListener('keydown',e=>{
+    let k=null;const c=e.key;
+    if(/^\d$/.test(c))k=c;
+    else if(c==='+')k='+';else if(c==='-')k='\u2212';
+    else if(c==='*'||c==='x'||c==='X')k='\u00d7';else if(c==='/')k='\u00f7';
+    else if(c==='.'||c===',')k='.';else if(c==='%')k='%';
+    else if(c==='Enter'||c==='=')k='=';else if(c==='Backspace')k='B';
+    else if(c==='Escape'||c==='c'||c==='C')k='C';
+    if(k){e.preventDefault();press(k)}
+  });
+  show();
+})();
 function enter(u){
   me=u;try{localStorage.setItem('sto_cu',JSON.stringify({username:u.username,role:u.role}))}catch(e){}
   $('who').textContent=u.username+(u.role==='admin'?' (master)':'');
   $('gear').hidden=u.role!=='admin';$('tab_set').hidden=u.role!=='admin';
   view('app');
+  betaOpen();
   if(u.role==='admin')refreshUsers(true);
 }
 function kick(msg){
+  try{sessionStorage.removeItem('sto_beta_ack')}catch(e){}
   setTok('');me=null;SYNC.res='idle';SYNC.last=0;syncRender();view('auth');authTab('in');document.title=BASE;$('gbadge').hidden=true;$('tbadge').hidden=true;$('bbadge').hidden=true;$('gear').classList.remove('alert');menuOpen(false);
   if(msg)$('amsg').innerHTML='<span class="warn">'+esc(msg)+'</span>';
 }
