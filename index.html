@@ -846,6 +846,12 @@ main.stage{padding-top:20px}
 .bok:hover{background:#1d4fd0}
 .bfb{border:1px solid #d9dcea;background:#fff;color:#14142b;font-weight:600}
 .bfb:hover{background:#f3f5fd}
+.rpbox{width:min(460px,100%)}
+.rppw{display:flex;align-items:center;gap:10px;margin:4px 0 6px;padding:12px 14px;border-radius:14px;background:#eceef6;border:1px solid #d9dcea}
+.rppw code{flex:1;min-width:0;font:800 22px/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.06em;word-break:break-all;user-select:all}
+.rppw button{margin:0;flex:none;padding:8px 14px;font-size:13px}
+body.dark .rppw{background:#2a2b24;border-color:#3a3b33}
+.rpbox .bact a.btn{display:inline-flex;align-items:center;justify-content:center;height:46px;box-sizing:border-box;padding:0 22px;border-radius:12px}
 body.dark .bbox{background:#1f2019;color:#f2f2ec}
 body.dark .bclose{color:#a8a89e}body.dark .bclose:hover{color:#fff}
 body.dark .blog{background:#2a2b23;border-color:rgba(255,255,255,.12)}
@@ -1104,6 +1110,14 @@ body.dark .widgets .sdots .sdot.on{background:#2b2d25;border-color:var(--line)}
 </main>
 </div></div>
 
+<div class="bmask" id="rp_mask" role="dialog" aria-modal="true" aria-labelledby="rp_t" hidden>
+<div class="bbox rpbox">
+<h2 class="btitle" id="rp_t">Password direset</h2>
+<p class="btext" id="rp_txt"></p>
+<div class="rppw"><code id="rp_pw"></code><button type="button" class="g" id="rp_copy">Salin</button></div>
+<p class="f" style="margin:6px 0 0">Password ini hanya ditampilkan sekarang. Kirim ke pengguna sebelum menutup popup.</p>
+<div class="bact"><a class="btn" id="rp_wa" href="#" target="_blank" rel="noopener">Hubungi via WhatsApp</a><button type="button" class="bfb" id="rp_close">Tutup</button></div>
+</div></div>
 <div class="bmask" id="beta_mask" role="dialog" aria-modal="true" aria-labelledby="beta_t" hidden>
 <div class="bbox">
 <button type="button" class="bclose" id="beta_x" aria-label="Tutup">Tutup <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
@@ -3187,6 +3201,7 @@ $('back2').onclick=()=>view('app');
 $('reload').onclick=()=>refreshUsers();
 
 /* ---- Panel admin ---- */
+let USERS=[];
 const ST={disetujui:['Disetujui','s-ok'],menunggu:['Menunggu','s-wt'],ditolak:['Ditolak','s-bad'],dicabut:['Dicabut','s-bad']};
 async function refreshUsers(silent){
   if(!silent)$('umsg').textContent='Memuat…';
@@ -3201,22 +3216,66 @@ function row(u,btns){
 }
 const bt=(act,u,label,cls)=>'<button type="button" class="'+(cls||'')+'" data-act="'+act+'" data-u="'+esc(u)+'">'+label+'</button>';
 function renderUsers(j){
-  const us=j.users,pend=us.filter(u=>u.status==='menunggu'),rest=us.filter(u=>u.status!=='menunggu');
+  USERS=j.users;const us=j.users,pend=us.filter(u=>u.status==='menunggu'),rest=us.filter(u=>u.status!=='menunggu');
   $('c_req').textContent=pend.length;$('gbadge').textContent=pend.length;$('gbadge').hidden=!pend.length;$('tbadge').textContent=pend.length;$('tbadge').hidden=!pend.length;$('bbadge').hidden=!pend.length;$('gear').classList.toggle('alert',!!pend.length);$('gear').title=pend.length?pend.length+' permintaan daftar baru':'Pengaturan';document.title=(pend.length?'('+pend.length+') ':'')+BASE;
   $('l_req').innerHTML=pend.length?pend.map(u=>row(u,bt('disetujui',u.username,'Setujui')+bt('ditolak',u.username,'Tolak','dg'))).join(''):'<div class="f">Belum ada permintaan baru.</div>';
   $('l_usr').innerHTML=rest.length?rest.map(u=>row(u,u.role==='admin'?'':
-    (u.status==='disetujui'?bt('dicabut',u.username,'Cabut akses','dg'):bt('disetujui',u.username,'Setujui'))+bt('hapus',u.username,'Hapus','dg'))).join(''):'<div class="f">Belum ada pengguna.</div>';
+    (u.status==='disetujui'?bt('dicabut',u.username,'Cabut akses','dg')+bt('reset',u.username,'Reset password','g'):bt('disetujui',u.username,'Setujui'))+bt('hapus',u.username,'Hapus','dg'))).join(''):'<div class="f">Belum ada pengguna.</div>';
   const lg=j.logs.slice(0,20);$('l_log').innerHTML=lg.length?'<table><tr><th>Waktu</th><th>User</th><th>Aksi</th><th>Detail</th></tr>'+
     lg.map(l=>'<tr><td>'+esc(l.t)+'</td><td>'+esc(l.u)+'</td><td>'+esc(l.a)+'</td><td>'+esc(l.d)+'</td></tr>').join('')+'</table>':'<div class="f">Belum ada log.</div>';
 }
 $('v_users').addEventListener('click',async e=>{
   const b=e.target.closest('button[data-act]');if(!b)return;
   const act=b.dataset.act,u=b.dataset.u;
+  if(act==='reset')return resetPw(b,u);
   if(act==='hapus'&&!confirm('Hapus pengguna "'+u+'"? Tindakan ini tidak bisa dibatalkan.'))return;
   b.disabled=true;
   try{await api(act==='hapus'?'delete':'setstatus',{u,status:act});await refreshUsers()}
   catch(er){if(er.auth)return kick(er.message);$('umsg').innerHTML='<span class="err">'+esc(er.message)+'</span>';b.disabled=false}
 });
+
+/* ---- Reset password otomatis + kirim lewat WhatsApp ---- */
+function genPw(){
+  const U='ABCDEFGHJKLMNPQRSTUVWXYZ',L='abcdefghijkmnpqrstuvwxyz',D='23456789',A=U+L+D,n=10;
+  const rnd=m=>{const a=new Uint32Array(1),lim=Math.floor(4294967296/m)*m;do{crypto.getRandomValues(a)}while(a[0]>=lim);return a[0]%m};
+  const c=[U[rnd(U.length)],L[rnd(L.length)],D[rnd(D.length)]];
+  while(c.length<n)c.push(A[rnd(A.length)]);
+  for(let i=c.length-1;i>0;i--){const j=rnd(i+1);[c[i],c[j]]=[c[j],c[i]]}
+  return c.join('');
+}
+async function resetPw(b,u){
+  if(!confirm('Reset password untuk \"'+u+'\"? Password lama langsung tidak berlaku dan diganti password baru otomatis.'))return;
+  const usr=USERS.find(x=>x.username===u),pw=genPw();
+  b.disabled=true;$('umsg').textContent='Mereset password…';
+  try{
+    await api('resetpw',{u,password:pw});
+    $('umsg').textContent='';
+    showReset(u,usr&&usr.wa,pw);
+  }catch(er){if(er.auth)return kick(er.message);$('umsg').innerHTML='<span class=\"err\">'+esc(er.message)+'</span>'}
+  b.disabled=false;
+}
+function showReset(u,wa,pw){
+  const m=$('rp_mask');
+  $('rp_txt').innerHTML='Password akun <b>'+esc(u)+'</b> sudah diganti. Hubungi pengguna lewat WhatsApp untuk memberikan password barunya.';
+  $('rp_pw').textContent=pw;$('rp_copy').textContent='Salin';
+  const w=String(wa||'').replace(/\D/g,''),a=$('rp_wa');
+  const msg='Halo '+u+', password akun STO Hub kamu sudah direset oleh admin.\n\nUsername: '+u+'\nPassword baru: '+pw+'\n\nSilakan masuk dengan password tersebut dan jaga kerahasiaannya. Terima kasih.';
+  if(w){a.href='https://wa.me/'+w+'?text='+encodeURIComponent(msg);a.hidden=false}
+  else{a.removeAttribute('href');a.hidden=true;$('rp_txt').innerHTML+=' <span class=\"err\">Nomor WhatsApp pengguna tidak tersedia, salin password lalu kirim manual.</span>'}
+  m.hidden=false;
+}
+(function(){
+  const m=$('rp_mask'),close=()=>{m.hidden=true;$('rp_pw').textContent=''};
+  $('rp_close').onclick=close;
+  m.addEventListener('click',e=>{if(e.target===m)close()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!m.hidden)close()});
+  $('rp_copy').onclick=async()=>{
+    const t=$('rp_pw').textContent;
+    try{await navigator.clipboard.writeText(t)}
+    catch(_){const r=document.createRange();r.selectNodeContents($('rp_pw'));const s=getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand('copy')}catch(e){}}
+    $('rp_copy').textContent='Tersalin';
+  };
+})();
 
 /* ---- Widget bawah (PC): kalender, jam analog, cuaca ---- */
 (function(){
