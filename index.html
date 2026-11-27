@@ -585,7 +585,9 @@ main.stage>.navfoot .wm{margin:0;padding:0;border:0;justify-content:flex-end;tex
 @keyframes drin2{from{transform:translateX(-102%);opacity:.6}to{transform:none;opacity:1}}
 @keyframes drout{from{transform:none;opacity:1}to{transform:translateX(-102%);opacity:.6}}
 @keyframes sfade{from{opacity:0}to{opacity:1}}
-#v_auth:not([hidden]),#v_app:not([hidden]),#v_users:not([hidden]),#p_sd:not([hidden]),#p_red:not([hidden]),#p_rep:not([hidden]),#p_drv:not([hidden]){animation:vin .45s cubic-bezier(.22,1,.36,1) both;will-change:opacity,transform}
+#v_app:not([hidden]),#v_users:not([hidden]),#p_sd:not([hidden]),#p_red:not([hidden]),#p_rep:not([hidden]),#p_drv:not([hidden]){animation:vin .45s cubic-bezier(.22,1,.36,1) both;will-change:opacity,transform}
+/* login: animasi hanya opacity (transform/will-change membuat .abg position:fixed ikut scroll & tidak fit layar) */
+#v_auth:not([hidden]){animation:sfade .4s ease both}
 .drv-grid{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:18px;align-items:start}
 @media (max-width:899px){.drv-grid{grid-template-columns:1fr}}
 .drv-list{display:flex;flex-direction:column;gap:10px}
@@ -851,11 +853,12 @@ body.dark .bfb{background:#2a2b23;border-color:rgba(255,255,255,.16);color:#f2f2
 @media (max-width:520px){.bbox{padding:22px 18px 18px;border-radius:22px}.btitle{font-size:21px}.bact button{flex:1 1 100%}}
 
 /* ---- Widget cuaca mode stack + kalkulator ---- */
-.wstack{position:relative;display:grid;min-width:0;padding-bottom:42px}
-.wstack>.wg{grid-area:1/1;min-width:0;transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .3s,filter .3s;touch-action:pan-y;will-change:transform;-webkit-user-select:none;user-select:none}
-.wstack>.wg[data-pos="0"]{z-index:3;cursor:grab}
-.wstack>.wg[data-pos="0"].drag{cursor:grabbing}
-.wstack>.wg[data-pos="1"]{z-index:2;transform:translateY(22px) scale(.95);filter:brightness(.88);pointer-events:none}
+html{overscroll-behavior-x:none}
+.wstack{position:relative;display:grid;min-width:0;padding-bottom:42px;overflow-x:clip}
+.wstack>.wg{grid-area:1/1;min-width:0;transition:transform .22s ease,opacity .22s ease;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.wstack>.wg[data-pos="0"]{z-index:2;cursor:grab;opacity:1;transform:none}
+.wstack>.wg[data-pos="1"]{z-index:1;opacity:0;pointer-events:none}
+.wstack>.wg.drag{cursor:grabbing;transition:none}
 .sdots{position:absolute;left:0;right:0;bottom:4px;display:flex;justify-content:center;gap:8px}
 .widgets .sdots .sdot{margin:0;padding:6px 14px;border:1px solid var(--bd);border-radius:999px;background:transparent;color:var(--mut);font:700 12px/1 "Manrope",sans-serif;box-shadow:none;cursor:pointer}
 .widgets .sdots .sdot.on{background:var(--olive);border-color:var(--olive);color:#fff}
@@ -2995,49 +2998,60 @@ $('beta_fb').onclick=()=>{
   const t='Halo Admin, saya ingin memberi masukan untuk STO Hub (v'+APP_VER+').'+(me&&me.username?'\nUsername: '+me.username:'')+'\nMasukan: ';
   window.open('https://wa.me/'+ADMIN_WA+'?text='+encodeURIComponent(t),'_blank','noopener');
 };
-/* ---- Widget stack: cuaca <-> kalkulator ---- */
+/* ---- Widget stack: cuaca <-> kalkulator (rollover, animasi sederhana) ---- */
 (function(){
   const stack=$('wstack');if(!stack)return;
-  const cards=[$('wxcard'),$('calc')],dots=[...stack.querySelectorAll('.sdot')];
+  const cards=[$('wxcard'),$('calc')],dots=[...stack.querySelectorAll('.sdot')],N=cards.length;
   let cur=0,busy=false;
   function paint(){
     cards.forEach((c,i)=>{c.dataset.pos=i===cur?0:1;c.inert=i!==cur;c.setAttribute('aria-hidden',i!==cur?'true':'false')});
     dots.forEach((d,i)=>{d.classList.toggle('on',i===cur);d.setAttribute('aria-selected',i===cur)});
   }
-  function flip(dir){
+  /* step: +1 = kartu berikutnya, -1 = sebelumnya; berputar terus (rollover) */
+  function flip(step,fromX){
     if(busy)return;busy=true;
-    const top=cards[cur],nxt=cards[1-cur];
-    top.style.transition='transform .3s ease,opacity .3s ease';
-    top.style.transform='translateX('+(dir*115)+'%) rotate('+(dir*8)+'deg)';top.style.opacity='0';
+    const top=cards[cur],dir=step>0?-1:1;
+    top.style.transform='translateX('+((fromX||0)+dir*24)+'px)';top.style.opacity='0';
+    cur=(cur+step+N)%N;paint();
     setTimeout(()=>{
       top.style.transition='none';top.style.transform='';top.style.opacity='';
-      cur=1-cur;paint();void top.offsetWidth;top.style.transition='';busy=false;
-    },300);
+      void top.offsetWidth;top.style.transition='';busy=false;
+    },230);
   }
-  function go(i){if(i!==cur)flip(i>cur?-1:1)}
-  dots.forEach(d=>d.addEventListener('click',()=>go(+d.dataset.i)));
-  let sx=0,dx=0,drag=false;
+  dots.forEach(d=>d.addEventListener('click',()=>{const i=+d.dataset.i;if(i!==cur)flip(i>cur?1:-1)}));
+  let sx=0,sy=0,dx=0,armed=false,drag=false,pid=null,swallow=false;
   stack.addEventListener('pointerdown',e=>{
     const top=cards[cur];
-    if(busy||!top.contains(e.target)||e.target.closest('button,select,input,a'))return;
-    drag=true;sx=e.clientX;dx=0;top.classList.add('drag');top.style.transition='none';
-    try{top.setPointerCapture(e.pointerId)}catch(_){}
+    if(busy||(e.pointerType==='mouse'&&e.button!==0)||!top.contains(e.target)||e.target.closest('select,input,a'))return;
+    armed=true;drag=false;sx=e.clientX;sy=e.clientY;dx=0;pid=e.pointerId;
   });
   stack.addEventListener('pointermove',e=>{
-    if(!drag)return;const top=cards[cur];dx=e.clientX-sx;
-    top.style.transform='translateX('+dx+'px) rotate('+(dx/45)+'deg)';top.style.opacity=String(1-Math.min(Math.abs(dx)/420,.5));
+    if(!armed||e.pointerId!==pid)return;const top=cards[cur];
+    const mx=e.clientX-sx,my=e.clientY-sy;
+    if(!drag){
+      if(Math.abs(my)>10&&Math.abs(my)>Math.abs(mx)){armed=false;return}
+      if(Math.abs(mx)<8)return;
+      drag=true;top.classList.add('drag');
+      try{top.setPointerCapture(pid)}catch(_){}
+    }
+    dx=mx;
+    top.style.transform='translateX('+dx+'px)';top.style.opacity=String(1-Math.min(Math.abs(dx)/300,.5));
   });
   function end(){
-    if(!drag)return;drag=false;const top=cards[cur];top.classList.remove('drag');
-    if(Math.abs(dx)>70){top.style.transition='';flip(dx<0?-1:1)}
-    else{top.style.transition='';top.style.transform='';top.style.opacity=''}
+    if(!armed)return;armed=false;
+    if(!drag)return;
+    drag=false;swallow=true;setTimeout(()=>{swallow=false},0);
+    const top=cards[cur];top.classList.remove('drag');
+    if(Math.abs(dx)>60)flip(dx<0?1:-1,dx);
+    else{top.style.transform='';top.style.opacity=''}
     dx=0;
   }
   stack.addEventListener('pointerup',end);stack.addEventListener('pointercancel',end);
+  /* setelah menggeser, jangan anggap sebagai klik tombol (mis. tombol kalkulator) */
+  stack.addEventListener('click',e=>{if(swallow){e.stopPropagation();e.preventDefault();swallow=false}},true);
   stack.addEventListener('keydown',e=>{
     if(e.target.closest('select,input'))return;
-    if(e.key==='ArrowRight'&&cur===0&&!e.target.closest('#calc')){go(1)}
-    else if(e.key==='ArrowLeft'&&cur===1&&!e.target.closest('#calc')){go(0)}
+    if(e.key==='ArrowRight')flip(1);else if(e.key==='ArrowLeft')flip(-1);
   });
   paint();
 
