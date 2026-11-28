@@ -585,9 +585,7 @@ main.stage>.navfoot .wm{margin:0;padding:0;border:0;justify-content:flex-end;tex
 @keyframes drin2{from{transform:translateX(-102%);opacity:.6}to{transform:none;opacity:1}}
 @keyframes drout{from{transform:none;opacity:1}to{transform:translateX(-102%);opacity:.6}}
 @keyframes sfade{from{opacity:0}to{opacity:1}}
-#v_app:not([hidden]),#v_users:not([hidden]),#p_sd:not([hidden]),#p_red:not([hidden]),#p_rep:not([hidden]),#p_drv:not([hidden]){animation:vin .45s cubic-bezier(.22,1,.36,1) both;will-change:opacity,transform}
-/* login: animasi hanya opacity (transform/will-change membuat .abg position:fixed ikut scroll & tidak fit layar) */
-#v_auth:not([hidden]){animation:sfade .4s ease both}
+#v_auth:not([hidden]),#v_app:not([hidden]),#v_users:not([hidden]),#p_sd:not([hidden]),#p_red:not([hidden]),#p_rep:not([hidden]),#p_drv:not([hidden]){animation:vin .45s cubic-bezier(.22,1,.36,1) both;will-change:opacity,transform}
 .drv-grid{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:18px;align-items:start}
 @media (max-width:899px){.drv-grid{grid-template-columns:1fr}}
 .drv-list{display:flex;flex-direction:column;gap:10px}
@@ -846,12 +844,6 @@ main.stage{padding-top:20px}
 .bok:hover{background:#1d4fd0}
 .bfb{border:1px solid #d9dcea;background:#fff;color:#14142b;font-weight:600}
 .bfb:hover{background:#f3f5fd}
-.rpbox{width:min(460px,100%)}
-.rppw{display:flex;align-items:center;gap:10px;margin:4px 0 6px;padding:12px 14px;border-radius:14px;background:#eceef6;border:1px solid #d9dcea}
-.rppw code{flex:1;min-width:0;font:800 22px/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.06em;word-break:break-all;user-select:all}
-.rppw button{margin:0;flex:none;padding:8px 14px;font-size:13px}
-body.dark .rppw{background:#2a2b24;border-color:#3a3b33}
-.rpbox .bact a.btn{display:inline-flex;align-items:center;justify-content:center;height:46px;box-sizing:border-box;padding:0 22px;border-radius:12px}
 body.dark .bbox{background:#1f2019;color:#f2f2ec}
 body.dark .bclose{color:#a8a89e}body.dark .bclose:hover{color:#fff}
 body.dark .blog{background:#2a2b23;border-color:rgba(255,255,255,.12)}
@@ -859,12 +851,11 @@ body.dark .bfb{background:#2a2b23;border-color:rgba(255,255,255,.16);color:#f2f2
 @media (max-width:520px){.bbox{padding:22px 18px 18px;border-radius:22px}.btitle{font-size:21px}.bact button{flex:1 1 100%}}
 
 /* ---- Widget cuaca mode stack + kalkulator ---- */
-html{overscroll-behavior-x:none}
-.wstack{position:relative;display:grid;min-width:0;padding-bottom:42px;overflow-x:clip}
-.wstack>.wg{grid-area:1/1;min-width:0;transition:transform .22s ease,opacity .22s ease;touch-action:pan-y;-webkit-user-select:none;user-select:none}
-.wstack>.wg[data-pos="0"]{z-index:2;cursor:grab;opacity:1;transform:none}
-.wstack>.wg[data-pos="1"]{z-index:1;opacity:0;pointer-events:none}
-.wstack>.wg.drag{cursor:grabbing;transition:none}
+.wstack{position:relative;display:grid;min-width:0;padding-bottom:42px}
+.wstack>.wg{grid-area:1/1;min-width:0;transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .3s,filter .3s;touch-action:pan-y;will-change:transform;-webkit-user-select:none;user-select:none}
+.wstack>.wg[data-pos="0"]{z-index:3;cursor:grab}
+.wstack>.wg[data-pos="0"].drag{cursor:grabbing}
+.wstack>.wg[data-pos="1"]{z-index:2;transform:translateY(22px) scale(.95);filter:brightness(.88);pointer-events:none}
 .sdots{position:absolute;left:0;right:0;bottom:4px;display:flex;justify-content:center;gap:8px}
 .widgets .sdots .sdot{margin:0;padding:6px 14px;border:1px solid var(--bd);border-radius:999px;background:transparent;color:var(--mut);font:700 12px/1 "Manrope",sans-serif;box-shadow:none;cursor:pointer}
 .widgets .sdots .sdot.on{background:var(--olive);border-color:var(--olive);color:#fff}
@@ -883,6 +874,41 @@ html{overscroll-behavior-x:none}
 .widgets .ckeys .eq{background:var(--lime);color:var(--ink)}
 .widgets .ckeys .eq:hover{background:#e3ea2a}
 body.dark .widgets .sdots .sdot.on{background:#2b2d25;border-color:var(--line)}
+
+/* ===== Halaman Profil ===== */
+.tools #ava,.tools #who{cursor:pointer}
+.tools #who:hover{text-decoration:underline}
+.tools #ava:focus-visible,.tools #who:focus-visible{outline:2px solid var(--acc,#4b50f5);outline-offset:2px;border-radius:12px}
+.ava.has,.pf-ava.has{background-size:cover;background-position:center;background-repeat:no-repeat;color:transparent;font-size:0}
+.pf-hero,.pf-edit{max-width:560px;margin-left:auto;margin-right:auto;box-sizing:border-box}
+.pf-hero{display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px 24px 26px}
+.pf-avwrap{position:relative;width:150px;height:150px}
+.pf-ava{width:150px;height:150px;border-radius:50%;display:grid;place-items:center;font:800 56px/1 "Manrope",sans-serif;background:var(--lime,#eef53a);color:var(--ink,#1d1d19);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.14)}
+.pf-pen{position:absolute;right:2px;bottom:6px;width:42px;height:42px;padding:0;margin:0;border-radius:50%;display:grid;place-items:center;background:#fff;color:var(--ink,#1d1d19);border:2px solid var(--bd,rgba(29,29,25,.16));box-shadow:0 4px 12px rgba(0,0,0,.22);cursor:pointer}
+.pf-pen:hover:not(:disabled){background:var(--lime,#eef53a);transform:scale(1.06)}
+.pf-pen:focus-visible,.pf-editb:focus-visible,.pf-link:focus-visible{outline:2px solid var(--acc,#4b50f5);outline-offset:3px}
+body.dark .pf-pen{background:#2a2b23;color:#f2f2ec;border-color:rgba(255,255,255,.2)}
+body.dark .pf-pen:hover:not(:disabled){background:var(--lime,#eef53a);color:#1d1d19}
+.pf-phact{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:16px}
+.pf-phact button{margin:0}
+.pf-link{margin:12px 0 0;padding:4px 8px;background:transparent;border:0;box-shadow:none;color:var(--err,#e5484d);font:600 13px "Manrope",sans-serif;text-decoration:underline;cursor:pointer}
+.pf-link:hover:not(:disabled){background:transparent;color:var(--err,#e5484d);text-decoration:none}
+.pf-m{min-height:1.2em;margin:8px 0 6px}
+.pf-name{margin:12px 0 2px;font-size:24px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 8px;word-break:break-all}
+.pf-name .badge{margin-left:0}
+.pf-meta{margin:0 0 18px}
+.pf-editb{margin:0}
+.pf-edit{padding:22px 24px}
+.pf-sec+.pf-sec{margin-top:24px;padding-top:22px;border-top:1px solid var(--bd,rgba(29,29,25,.12))}
+.pf-sec h3{margin:0 0 12px;font:800 17px/1.2 "Manrope",sans-serif}
+.pf-l{display:block;margin:0 0 6px;font-size:13px;font-weight:700}
+.pf-edit input[type=tel],.pf-edit input[type=password]{width:100%;box-sizing:border-box}
+.pf-pw{display:grid;gap:12px;grid-template-columns:1fr}
+.pf-show{display:inline-flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;cursor:pointer}
+.pf-show input{width:auto;margin:0}
+.pf-act{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.pf-act button{margin:0}
+@media (max-width:520px){.pf-hero{padding:26px 16px 22px}.pf-edit{padding:20px 16px}}
 </style>
 </head>
 <body>
@@ -958,7 +984,7 @@ body.dark .widgets .sdots .sdot.on{background:#2b2d25;border-color:var(--line)}
 <div id="done" hidden></div>
 <div id="amsg" class="f" role="status"></div>
 </div></div>
-<footer class="afoot">&copy; <span id="yr2">2026</span> Laras Gita Milenia<span class="aver"> &middot; v1.0.9 Beta</span></footer>
+<footer class="afoot">&copy; <span id="yr2">2026</span> Laras Gita Milenia<span class="aver"> &middot; v1.0.11 Beta</span></footer>
 </section>
 
 <section id="v_app" hidden>
@@ -1075,6 +1101,38 @@ body.dark .widgets .sdots .sdot.on{background:#2b2d25;border-color:var(--line)}
 </div>
 </section>
 
+<section id="v_profile" hidden>
+<div class="sethead"><div><h2>Profil Saya</h2><div class="f">Ubah foto profil, nomor WhatsApp, dan password akun Anda.</div></div>
+<div class="hbtn"><button id="pf_back" type="button">Kembali ke aplikasi</button></div></div>
+<div class="card pf-hero">
+<div class="pf-avwrap"><div class="pf-ava" id="pf_ava" aria-hidden="true">?</div>
+<button type="button" class="pf-pen" id="pf_pick" aria-label="Ganti foto profil" title="Ganti foto profil"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>
+<input type="file" id="pf_file" accept="image/*" hidden>
+<div class="pf-phact" id="pf_phact" hidden><button type="button" id="pf_save_ph">Simpan foto</button><button type="button" id="pf_cancel_ph" class="g">Batal</button></div>
+<button type="button" class="pf-link" id="pf_del_ph" hidden>Hapus foto</button>
+<div id="pf_m1" class="f pf-m" role="status"></div>
+<h2 class="pf-name"><span id="pf_name">-</span><span class="badge" id="pf_role"></span></h2>
+<div class="f pf-meta" id="pf_meta"></div>
+<button type="button" class="pf-editb" id="pf_edit_b" aria-expanded="false" aria-controls="pf_edit">Edit Profil</button>
+</div>
+<div class="card pf-edit" id="pf_edit" hidden>
+<div class="pf-sec"><h3>Nomor WhatsApp</h3>
+<label class="pf-l" for="pf_wa">Nomor WhatsApp aktif</label>
+<input type="tel" id="pf_wa" inputmode="numeric" autocomplete="tel" placeholder="Contoh: 081234567890">
+<div class="f">Awalan 0 otomatis diubah ke 62 untuk tautan WhatsApp.</div>
+<div class="pf-act"><button type="button" id="pf_save_wa">Simpan nomor</button></div>
+<div id="pf_m2" class="f" role="status"></div></div>
+<div class="pf-sec"><h3>Ganti password</h3>
+<div class="pf-pw">
+<div><label class="pf-l" for="pf_p0">Password lama</label><input type="password" id="pf_p0" autocomplete="current-password"></div>
+<div><label class="pf-l" for="pf_p1">Password baru</label><input type="password" id="pf_p1" autocomplete="new-password"></div>
+<div><label class="pf-l" for="pf_p2">Ulangi password baru</label><input type="password" id="pf_p2" autocomplete="new-password"></div>
+</div>
+<label class="pf-show"><input type="checkbox" id="pf_eye"> Tampilkan password</label>
+<div class="pf-act"><button type="button" id="pf_save_pw">Ganti password</button></div>
+<div id="pf_m3" class="f" role="status"></div></div>
+</div>
+</section>
 <section id="v_users" hidden>
 <div class="sethead"><div><h2>Pengaturan</h2><div class="f">Kelola permintaan daftar dan akses pengguna.</div></div>
 <div class="hbtn"><button id="reload" class="g" type="button">Muat ulang</button><button id="back2" type="button">Kembali ke aplikasi</button></div></div>
@@ -1106,18 +1164,10 @@ body.dark .widgets .sdots .sdot.on{background:#2b2d25;border-color:var(--line)}
 <div class="sdots" role="tablist" aria-label="Pilih widget"><button type="button" class="sdot on" data-i="0" role="tab" aria-selected="true">Cuaca</button><button type="button" class="sdot" data-i="1" role="tab" aria-selected="false">Kalkulator</button></div>
 </div>
 </section>
-<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span>v1.0.9 Beta</span></footer></div>
+<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span>v1.0.11 Beta</span></footer></div>
 </main>
 </div></div>
 
-<div class="bmask" id="rp_mask" role="dialog" aria-modal="true" aria-labelledby="rp_t" hidden>
-<div class="bbox rpbox">
-<h2 class="btitle" id="rp_t">Password direset</h2>
-<p class="btext" id="rp_txt"></p>
-<div class="rppw"><code id="rp_pw"></code><button type="button" class="g" id="rp_copy">Salin</button></div>
-<p class="f" style="margin:6px 0 0">Password ini hanya ditampilkan sekarang. Kirim ke pengguna sebelum menutup popup.</p>
-<div class="bact"><a class="btn" id="rp_wa" href="#" target="_blank" rel="noopener">Hubungi via WhatsApp</a><button type="button" class="bfb" id="rp_close">Tutup</button></div>
-</div></div>
 <div class="bmask" id="beta_mask" role="dialog" aria-modal="true" aria-labelledby="beta_t" hidden>
 <div class="bbox">
 <button type="button" class="bclose" id="beta_x" aria-label="Tutup">Tutup <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
@@ -1985,6 +2035,7 @@ function syncHead(v){
   let t,sub;
   if(v==='auth'){t='STO Hub';sub='Masuk untuk mulai. File diproses di komputer Anda, tidak dikirim ke mana pun.'}
   else if(v==='users'){t='Pengaturan';sub='Kelola permintaan daftar dan akses pengguna.'}
+  else if(v==='profile'){t='Profil Saya';sub='Ubah foto profil, nomor WhatsApp, dan password akun Anda.'}
   else{t=PAGES[tab][0];sub=PAGES[tab][1]}
   $('ph_t').textContent=t;$('ph_s').textContent=sub;$('crumb').textContent=v==='auth'?'Masuk':t;
   const noProg=v!=='app'||tab==='rep'||tab==='drv';
@@ -2918,7 +2969,7 @@ const API_URL='https://script.google.com/macros/s/AKfycbyBA17V2i3VmFx6ffHJ7iDH6R
 const ADMIN_WA='6289621154915';
 let me=null;const BASE=document.title;
 const tok=()=>{try{return localStorage.getItem('sdtok')||''}catch(e){return ''}};
-const setTok=v=>{try{if(v)localStorage.setItem('sdtok',v);else{localStorage.removeItem('sdtok');localStorage.removeItem('sto_cu')}}catch(e){}};
+const setTok=v=>{try{if(v)localStorage.setItem('sdtok',v);else{localStorage.removeItem('sdtok');localStorage.removeItem('sto_cu');localStorage.removeItem('sto_ph')}}catch(e){}};
 const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const SYNC={n:0,res:'idle',last:0,msg:'',slow:false,t:0};
@@ -2970,11 +3021,11 @@ function bootDone(){const b=document.getElementById('boot');if(!b||b.classList.c
 setTimeout(()=>{const t=document.getElementById('boot_t');if(t)t.textContent='Menghubungkan ke server… bisa lebih lama kalau server baru aktif.'},5000);
 setTimeout(()=>{if(document.getElementById('boot'))view('auth')},75000);
 function view(v){
-  const cur=['auth','app','users'].find(x=>!$('v_'+x).hidden);
+  const cur=['auth','app','users','profile'].find(x=>!$('v_'+x).hidden);
   clearTimeout(view._t);
-  ['auth','app','users'].forEach(x=>$('v_'+x).classList.remove('page-leave'));
+  ['auth','app','users','profile'].forEach(x=>$('v_'+x).classList.remove('page-leave'));
   const apply=()=>{
-    ['auth','app','users'].forEach(x=>$('v_'+x).hidden=x!==v);
+    ['auth','app','users','profile'].forEach(x=>$('v_'+x).hidden=x!==v);
     const next=$('v_'+v);
     if(next&&cur&&cur!==v){next.style.animation='none';void next.offsetWidth;next.style.animation=''}
     document.body.classList.toggle('in',v!=='auth');
@@ -2987,11 +3038,11 @@ function view(v){
   }else{apply()}
 }
 /* ---- Popup peringatan Beta + changelog (diperbarui tiap versi) ---- */
-const APP_VER='1.0.9-beta';
+const APP_VER='1.0.11-beta';
 const CHANGELOG=[
-  '[Baru] Widget cuaca kini berbentuk tumpukan (stack); geser kartu untuk beralih ke kalkulator.',
-  '[Baru] Kalkulator sederhana (+, −, ×, ÷, %) yang bisa dipakai lewat tombol maupun keyboard.',
-  '[Perbaikan] Ikon popup peringatan Beta disesuaikan dengan tema (hijau) dan memakai logo STO Hub abu-abu.',
+  '[Perbaikan] Tampilan Profil dirombak: foto profil di tengah halaman, dengan ikon pensil kecil di pojok kanan foto untuk mengganti foto.',
+  '[Baru] Tombol Edit Profil berisi ganti nomor WhatsApp dan ganti password.',
+  '[Info] Fitur Profil butuh tambahan kode Apps Script (file profil_apps_script.gs) agar data tersimpan di Google Sheet.',
   '[Peringatan Beta] Hasil dan data yang ditampilkan masih bisa mengandung kekeliruan; harap cek kembali angkanya.'
 ];
 function betaOpen(){
@@ -3012,60 +3063,49 @@ $('beta_fb').onclick=()=>{
   const t='Halo Admin, saya ingin memberi masukan untuk STO Hub (v'+APP_VER+').'+(me&&me.username?'\nUsername: '+me.username:'')+'\nMasukan: ';
   window.open('https://wa.me/'+ADMIN_WA+'?text='+encodeURIComponent(t),'_blank','noopener');
 };
-/* ---- Widget stack: cuaca <-> kalkulator (rollover, animasi sederhana) ---- */
+/* ---- Widget stack: cuaca <-> kalkulator ---- */
 (function(){
   const stack=$('wstack');if(!stack)return;
-  const cards=[$('wxcard'),$('calc')],dots=[...stack.querySelectorAll('.sdot')],N=cards.length;
+  const cards=[$('wxcard'),$('calc')],dots=[...stack.querySelectorAll('.sdot')];
   let cur=0,busy=false;
   function paint(){
     cards.forEach((c,i)=>{c.dataset.pos=i===cur?0:1;c.inert=i!==cur;c.setAttribute('aria-hidden',i!==cur?'true':'false')});
     dots.forEach((d,i)=>{d.classList.toggle('on',i===cur);d.setAttribute('aria-selected',i===cur)});
   }
-  /* step: +1 = kartu berikutnya, -1 = sebelumnya; berputar terus (rollover) */
-  function flip(step,fromX){
+  function flip(dir){
     if(busy)return;busy=true;
-    const top=cards[cur],dir=step>0?-1:1;
-    top.style.transform='translateX('+((fromX||0)+dir*24)+'px)';top.style.opacity='0';
-    cur=(cur+step+N)%N;paint();
+    const top=cards[cur],nxt=cards[1-cur];
+    top.style.transition='transform .3s ease,opacity .3s ease';
+    top.style.transform='translateX('+(dir*115)+'%) rotate('+(dir*8)+'deg)';top.style.opacity='0';
     setTimeout(()=>{
       top.style.transition='none';top.style.transform='';top.style.opacity='';
-      void top.offsetWidth;top.style.transition='';busy=false;
-    },230);
+      cur=1-cur;paint();void top.offsetWidth;top.style.transition='';busy=false;
+    },300);
   }
-  dots.forEach(d=>d.addEventListener('click',()=>{const i=+d.dataset.i;if(i!==cur)flip(i>cur?1:-1)}));
-  let sx=0,sy=0,dx=0,armed=false,drag=false,pid=null,swallow=false;
+  function go(i){if(i!==cur)flip(i>cur?-1:1)}
+  dots.forEach(d=>d.addEventListener('click',()=>go(+d.dataset.i)));
+  let sx=0,dx=0,drag=false;
   stack.addEventListener('pointerdown',e=>{
     const top=cards[cur];
-    if(busy||(e.pointerType==='mouse'&&e.button!==0)||!top.contains(e.target)||e.target.closest('select,input,a'))return;
-    armed=true;drag=false;sx=e.clientX;sy=e.clientY;dx=0;pid=e.pointerId;
+    if(busy||!top.contains(e.target)||e.target.closest('button,select,input,a'))return;
+    drag=true;sx=e.clientX;dx=0;top.classList.add('drag');top.style.transition='none';
+    try{top.setPointerCapture(e.pointerId)}catch(_){}
   });
   stack.addEventListener('pointermove',e=>{
-    if(!armed||e.pointerId!==pid)return;const top=cards[cur];
-    const mx=e.clientX-sx,my=e.clientY-sy;
-    if(!drag){
-      if(Math.abs(my)>10&&Math.abs(my)>Math.abs(mx)){armed=false;return}
-      if(Math.abs(mx)<8)return;
-      drag=true;top.classList.add('drag');
-      try{top.setPointerCapture(pid)}catch(_){}
-    }
-    dx=mx;
-    top.style.transform='translateX('+dx+'px)';top.style.opacity=String(1-Math.min(Math.abs(dx)/300,.5));
+    if(!drag)return;const top=cards[cur];dx=e.clientX-sx;
+    top.style.transform='translateX('+dx+'px) rotate('+(dx/45)+'deg)';top.style.opacity=String(1-Math.min(Math.abs(dx)/420,.5));
   });
   function end(){
-    if(!armed)return;armed=false;
-    if(!drag)return;
-    drag=false;swallow=true;setTimeout(()=>{swallow=false},0);
-    const top=cards[cur];top.classList.remove('drag');
-    if(Math.abs(dx)>60)flip(dx<0?1:-1,dx);
-    else{top.style.transform='';top.style.opacity=''}
+    if(!drag)return;drag=false;const top=cards[cur];top.classList.remove('drag');
+    if(Math.abs(dx)>70){top.style.transition='';flip(dx<0?-1:1)}
+    else{top.style.transition='';top.style.transform='';top.style.opacity=''}
     dx=0;
   }
   stack.addEventListener('pointerup',end);stack.addEventListener('pointercancel',end);
-  /* setelah menggeser, jangan anggap sebagai klik tombol (mis. tombol kalkulator) */
-  stack.addEventListener('click',e=>{if(swallow){e.stopPropagation();e.preventDefault();swallow=false}},true);
   stack.addEventListener('keydown',e=>{
     if(e.target.closest('select,input'))return;
-    if(e.key==='ArrowRight')flip(1);else if(e.key==='ArrowLeft')flip(-1);
+    if(e.key==='ArrowRight'&&cur===0&&!e.target.closest('#calc')){go(1)}
+    else if(e.key==='ArrowLeft'&&cur===1&&!e.target.closest('#calc')){go(0)}
   });
   paint();
 
@@ -3132,9 +3172,11 @@ function enter(u){
   $('gear').hidden=u.role!=='admin';$('tab_set').hidden=u.role!=='admin';
   view('app');
   betaOpen();
+  pfBoot(u);
   if(u.role==='admin')refreshUsers(true);
 }
 function kick(msg){
+  try{pfReset()}catch(e){}
   try{sessionStorage.removeItem('sto_beta_ack')}catch(e){}
   setTok('');me=null;SYNC.res='idle';SYNC.last=0;syncRender();view('auth');authTab('in');document.title=BASE;$('gbadge').hidden=true;$('tbadge').hidden=true;$('bbadge').hidden=true;$('gear').classList.remove('alert');menuOpen(false);
   if(msg)$('amsg').innerHTML='<span class="warn">'+esc(msg)+'</span>';
@@ -3201,7 +3243,6 @@ $('back2').onclick=()=>view('app');
 $('reload').onclick=()=>refreshUsers();
 
 /* ---- Panel admin ---- */
-let USERS=[];
 const ST={disetujui:['Disetujui','s-ok'],menunggu:['Menunggu','s-wt'],ditolak:['Ditolak','s-bad'],dicabut:['Dicabut','s-bad']};
 async function refreshUsers(silent){
   if(!silent)$('umsg').textContent='Memuat…';
@@ -3216,66 +3257,22 @@ function row(u,btns){
 }
 const bt=(act,u,label,cls)=>'<button type="button" class="'+(cls||'')+'" data-act="'+act+'" data-u="'+esc(u)+'">'+label+'</button>';
 function renderUsers(j){
-  USERS=j.users;const us=j.users,pend=us.filter(u=>u.status==='menunggu'),rest=us.filter(u=>u.status!=='menunggu');
+  const us=j.users,pend=us.filter(u=>u.status==='menunggu'),rest=us.filter(u=>u.status!=='menunggu');
   $('c_req').textContent=pend.length;$('gbadge').textContent=pend.length;$('gbadge').hidden=!pend.length;$('tbadge').textContent=pend.length;$('tbadge').hidden=!pend.length;$('bbadge').hidden=!pend.length;$('gear').classList.toggle('alert',!!pend.length);$('gear').title=pend.length?pend.length+' permintaan daftar baru':'Pengaturan';document.title=(pend.length?'('+pend.length+') ':'')+BASE;
   $('l_req').innerHTML=pend.length?pend.map(u=>row(u,bt('disetujui',u.username,'Setujui')+bt('ditolak',u.username,'Tolak','dg'))).join(''):'<div class="f">Belum ada permintaan baru.</div>';
   $('l_usr').innerHTML=rest.length?rest.map(u=>row(u,u.role==='admin'?'':
-    (u.status==='disetujui'?bt('dicabut',u.username,'Cabut akses','dg')+bt('reset',u.username,'Reset password','g'):bt('disetujui',u.username,'Setujui'))+bt('hapus',u.username,'Hapus','dg'))).join(''):'<div class="f">Belum ada pengguna.</div>';
+    (u.status==='disetujui'?bt('dicabut',u.username,'Cabut akses','dg'):bt('disetujui',u.username,'Setujui'))+bt('hapus',u.username,'Hapus','dg'))).join(''):'<div class="f">Belum ada pengguna.</div>';
   const lg=j.logs.slice(0,20);$('l_log').innerHTML=lg.length?'<table><tr><th>Waktu</th><th>User</th><th>Aksi</th><th>Detail</th></tr>'+
     lg.map(l=>'<tr><td>'+esc(l.t)+'</td><td>'+esc(l.u)+'</td><td>'+esc(l.a)+'</td><td>'+esc(l.d)+'</td></tr>').join('')+'</table>':'<div class="f">Belum ada log.</div>';
 }
 $('v_users').addEventListener('click',async e=>{
   const b=e.target.closest('button[data-act]');if(!b)return;
   const act=b.dataset.act,u=b.dataset.u;
-  if(act==='reset')return resetPw(b,u);
   if(act==='hapus'&&!confirm('Hapus pengguna "'+u+'"? Tindakan ini tidak bisa dibatalkan.'))return;
   b.disabled=true;
   try{await api(act==='hapus'?'delete':'setstatus',{u,status:act});await refreshUsers()}
   catch(er){if(er.auth)return kick(er.message);$('umsg').innerHTML='<span class="err">'+esc(er.message)+'</span>';b.disabled=false}
 });
-
-/* ---- Reset password otomatis + kirim lewat WhatsApp ---- */
-function genPw(){
-  const U='ABCDEFGHJKLMNPQRSTUVWXYZ',L='abcdefghijkmnpqrstuvwxyz',D='23456789',A=U+L+D,n=10;
-  const rnd=m=>{const a=new Uint32Array(1),lim=Math.floor(4294967296/m)*m;do{crypto.getRandomValues(a)}while(a[0]>=lim);return a[0]%m};
-  const c=[U[rnd(U.length)],L[rnd(L.length)],D[rnd(D.length)]];
-  while(c.length<n)c.push(A[rnd(A.length)]);
-  for(let i=c.length-1;i>0;i--){const j=rnd(i+1);[c[i],c[j]]=[c[j],c[i]]}
-  return c.join('');
-}
-async function resetPw(b,u){
-  if(!confirm('Reset password untuk \"'+u+'\"? Password lama langsung tidak berlaku dan diganti password baru otomatis.'))return;
-  const usr=USERS.find(x=>x.username===u),pw=genPw();
-  b.disabled=true;$('umsg').textContent='Mereset password…';
-  try{
-    await api('resetpw',{u,password:pw});
-    $('umsg').textContent='';
-    showReset(u,usr&&usr.wa,pw);
-  }catch(er){if(er.auth)return kick(er.message);$('umsg').innerHTML='<span class=\"err\">'+esc(er.message)+'</span>'}
-  b.disabled=false;
-}
-function showReset(u,wa,pw){
-  const m=$('rp_mask');
-  $('rp_txt').innerHTML='Password akun <b>'+esc(u)+'</b> sudah diganti. Hubungi pengguna lewat WhatsApp untuk memberikan password barunya.';
-  $('rp_pw').textContent=pw;$('rp_copy').textContent='Salin';
-  const w=String(wa||'').replace(/\D/g,''),a=$('rp_wa');
-  const msg='Halo '+u+', password akun STO Hub kamu sudah direset oleh admin.\n\nUsername: '+u+'\nPassword baru: '+pw+'\n\nSilakan masuk dengan password tersebut dan jaga kerahasiaannya. Terima kasih.';
-  if(w){a.href='https://wa.me/'+w+'?text='+encodeURIComponent(msg);a.hidden=false}
-  else{a.removeAttribute('href');a.hidden=true;$('rp_txt').innerHTML+=' <span class=\"err\">Nomor WhatsApp pengguna tidak tersedia, salin password lalu kirim manual.</span>'}
-  m.hidden=false;
-}
-(function(){
-  const m=$('rp_mask'),close=()=>{m.hidden=true;$('rp_pw').textContent=''};
-  $('rp_close').onclick=close;
-  m.addEventListener('click',e=>{if(e.target===m)close()});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!m.hidden)close()});
-  $('rp_copy').onclick=async()=>{
-    const t=$('rp_pw').textContent;
-    try{await navigator.clipboard.writeText(t)}
-    catch(_){const r=document.createRange();r.selectNodeContents($('rp_pw'));const s=getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand('copy')}catch(e){}}
-    $('rp_copy').textContent='Tersalin';
-  };
-})();
 
 /* ---- Widget bawah (PC): kalender, jam analog, cuaca ---- */
 (function(){
@@ -3351,6 +3348,130 @@ function showReset(u,wa,pw){
   pick();
   setInterval(pick,30*60*1000);
 })();
+
+/* ===== Profil: foto, nomor WhatsApp, password (data tersimpan di sheet users lewat Apps Script) ===== */
+const PF={photo:'',pending:null,wa:'',meta:{}};
+const pfMsg=(id,cls,t)=>{$(id).innerHTML=t?'<span class="'+cls+'">'+esc(t)+'</span>':''};
+const pfInitial=()=>(((me&&me.username)||$('who').textContent||'?').trim()[0]||'?').toUpperCase();
+function pfPaint(){
+  const shown=PF.pending||PF.photo;
+  const set=(el,url)=>{if(!el)return;if(url){el.style.backgroundImage='url("'+url+'")';el.classList.add('has');el.textContent=''}else{el.style.backgroundImage='';el.classList.remove('has');el.textContent=pfInitial()}};
+  set($('ava'),PF.photo);set($('pf_ava'),shown);
+  $('pf_del_ph').hidden=!PF.photo||!!PF.pending;
+  $('pf_phact').hidden=!PF.pending;
+  $('pf_save_ph').disabled=!PF.pending;
+}
+function pfCache(){try{PF.photo?localStorage.setItem('sto_ph',PF.photo):localStorage.removeItem('sto_ph')}catch(e){}}
+function pfFill(){
+  const u=me||{},m=PF.meta||{};
+  $('pf_name').textContent=u.username||'-';
+  const r=$('pf_role');r.textContent=u.role==='admin'?'Master':'Pengguna';r.className='badge'+(u.role==='admin'?' s-ad':'');
+  $('pf_meta').textContent=[m.tgl_daftar?'Daftar '+m.tgl_daftar:'',m.login_terakhir?'Terakhir masuk '+m.login_terakhir:''].filter(Boolean).join(' · ');
+  $('pf_wa').value=PF.wa||u.wa||'';
+  ['pf_p0','pf_p1','pf_p2'].forEach(i=>$(i).value='');
+  pfPaint();
+}
+function pfErr(e){
+  let t=(e&&e.message)||String(e);
+  if(/tidak dikenal|unknown|invalid action|aksi/i.test(t))t+=' (Server belum mendukung fitur Profil. Tambahkan kode dari file profil_apps_script.gs ke Apps Script.)';
+  return t;
+}
+async function pfLoad(show){
+  try{
+    const j=await api('profile_get'),p=j.profile||j.user||{};
+    PF.photo=p.photo||p.foto||'';PF.wa=p.wa||PF.wa;PF.meta=p;
+    if(me&&p.wa)me.wa=p.wa;
+    pfCache();pfPaint();if(show)pfFill();
+  }catch(e){
+    if(e&&e.auth)return kick(e.message);
+    if(show)pfMsg('pf_m1','err',pfErr(e));
+  }
+}
+function pfBoot(u){
+  PF.pending=null;PF.wa=u.wa||'';PF.meta={};
+  PF.photo=u.photo||u.foto||'';
+  if(!PF.photo){try{PF.photo=localStorage.getItem('sto_ph')||''}catch(e){}}
+  pfPaint();
+  pfLoad(false);
+}
+function pfReset(){PF.photo='';PF.pending=null;PF.wa='';PF.meta={};try{localStorage.removeItem('sto_ph')}catch(e){}pfPaint()}
+function pfOpen(){
+  menuOpen(false);view('profile');pfFill();
+  ['pf_m1','pf_m2','pf_m3'].forEach(i=>$(i).innerHTML='');
+  pfEdit(false);
+  pfLoad(true);
+}
+['ava','who'].forEach(id=>{
+  const el=$(id);el.setAttribute('role','button');el.tabIndex=0;el.title='Buka profil';
+  el.addEventListener('click',pfOpen);
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pfOpen()}});
+});
+$('pf_back').onclick=()=>view('app');
+// Edit Profil: panel berisi nomor WhatsApp dan ganti password
+function pfEdit(o){
+  const b=$('pf_edit_b');$('pf_edit').hidden=!o;
+  b.setAttribute('aria-expanded',o?'true':'false');b.textContent=o?'Tutup Edit Profil':'Edit Profil';
+  if(o)$('pf_edit').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+$('pf_edit_b').onclick=()=>pfEdit($('pf_edit').hidden);
+$('pf_cancel_ph').onclick=()=>{PF.pending=null;pfPaint();pfMsg('pf_m1','','')};
+
+// Foto: dipotong persegi di tengah, dikecilkan, dan dikompres sampai muat di satu sel Google Sheets
+async function pfResize(file){
+  let src=null;
+  try{src=await createImageBitmap(file)}catch(e){}
+  if(!src)src=await new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('Foto tidak bisa dibaca. Pakai format JPG atau PNG.'));im.src=URL.createObjectURL(file)});
+  const w=src.width||src.naturalWidth,h=src.height||src.naturalHeight,side=Math.min(w,h);
+  for(const [size,q] of [[192,.85],[160,.8],[128,.75],[96,.7]]){
+    const c=document.createElement('canvas');c.width=c.height=size;
+    const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,size,size);
+    x.drawImage(src,(w-side)/2,(h-side)/2,side,side,0,0,size,size);
+    const d=c.toDataURL('image/jpeg',q);if(d.length<=30000)return d;
+  }
+  throw new Error('Foto terlalu rumit untuk dikompres. Pilih foto lain.');
+}
+$('pf_pick').onclick=()=>$('pf_file').click();
+$('pf_file').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  if(!/^image\//.test(f.type)){pfMsg('pf_m1','err','File harus berupa gambar (JPG atau PNG).');return}
+  if(f.size>20*1024*1024){pfMsg('pf_m1','err','Ukuran foto maksimal 20 MB.');return}
+  pfMsg('pf_m1','',''); $('pf_m1').textContent='Memproses foto…';
+  try{PF.pending=await pfResize(f);pfPaint();pfMsg('pf_m1','warn','Pratinjau foto. Tekan Simpan foto untuk menyimpannya.')}
+  catch(er){PF.pending=null;pfPaint();pfMsg('pf_m1','err',er.message)}
+};
+async function pfSend(btn,msgId,params,okText,after){
+  btn.disabled=true;$(msgId).textContent='Menyimpan…';
+  try{const j=await api('profile_update',params);after&&after(j);pfMsg(msgId,'ok',okText);return true}
+  catch(er){if(er&&er.auth){kick(er.message);return false}pfMsg(msgId,'err',pfErr(er));return false}
+  finally{btn.disabled=false;pfPaint()}
+}
+$('pf_save_ph').onclick=async()=>{
+  const d=PF.pending;if(!d)return;
+  await pfSend($('pf_save_ph'),'pf_m1',{photo:d},'Foto profil tersimpan.',()=>{PF.photo=d;PF.pending=null;pfCache()});
+};
+$('pf_del_ph').onclick=async()=>{
+  if(!confirm('Hapus foto profil?'))return;
+  await pfSend($('pf_del_ph'),'pf_m1',{photo:''},'Foto profil dihapus.',()=>{PF.photo='';PF.pending=null;pfCache()});
+};
+$('pf_save_wa').onclick=async()=>{
+  let w=$('pf_wa').value.replace(/\D/g,'');if(w.startsWith('0'))w='62'+w.slice(1);
+  if(w.length<9||w.length>15){pfMsg('pf_m2','err','Nomor WhatsApp tidak valid (9 sampai 15 digit).');return}
+  await pfSend($('pf_save_wa'),'pf_m2',{wa:w},'Nomor WhatsApp tersimpan: +'+w,()=>{PF.wa=w;if(me)me.wa=w;$('pf_wa').value=w});
+};
+$('pf_eye').onchange=e=>['pf_p0','pf_p1','pf_p2'].forEach(i=>$(i).type=e.target.checked?'text':'password');
+$('pf_save_pw').onclick=async()=>{
+  const a=$('pf_p0').value,b=$('pf_p1').value,c=$('pf_p2').value;
+  if(!a){pfMsg('pf_m3','err','Isi password lama.');return}
+  if(b.length<6){pfMsg('pf_m3','err','Password baru minimal 6 karakter.');return}
+  if(b!==c){pfMsg('pf_m3','err','Ulangi password baru tidak sama.');return}
+  if(b===a){pfMsg('pf_m3','err','Password baru harus berbeda dari password lama.');return}
+  const btn=$('pf_save_pw');btn.disabled=true;$('pf_m3').textContent='Menyimpan…';
+  try{
+    await api('password_change',{old_password:a,new_password:b});
+    ['pf_p0','pf_p1','pf_p2'].forEach(i=>$(i).value='');pfMsg('pf_m3','ok','Password berhasil diganti.');
+  }catch(er){if(er&&er.auth){kick(er.message);return}pfMsg('pf_m3','err',pfErr(er))}
+  finally{btn.disabled=false}
+};
 
 /* ---- Mulai ---- */
 (async()=>{
