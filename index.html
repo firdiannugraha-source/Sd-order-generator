@@ -909,6 +909,15 @@ body.dark .pf-pen:hover:not(:disabled){background:var(--lime,#eef53a);color:#1d1
 .pf-act{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
 .pf-act button{margin:0}
 @media (max-width:520px){.pf-hero{padding:26px 16px 22px}.pf-edit{padding:20px 16px}}
+
+/* ===== v1.0.12: latar login selalu penuh layar, stack widget lebih sederhana ===== */
+@keyframes vfade{from{opacity:0}to{opacity:1}}
+#v_auth:not([hidden]){animation:vfade .35s ease both;will-change:opacity}
+.abg{height:100vh;height:100dvh}
+html{overscroll-behavior-x:none}
+.wstack{overflow:hidden}
+@supports (overflow:clip){.wstack{overflow-x:clip;overflow-y:visible}}
+.wstack>.wg{transition:transform .3s ease,filter .3s ease}
 </style>
 </head>
 <body>
@@ -984,7 +993,7 @@ body.dark .pf-pen:hover:not(:disabled){background:var(--lime,#eef53a);color:#1d1
 <div id="done" hidden></div>
 <div id="amsg" class="f" role="status"></div>
 </div></div>
-<footer class="afoot">&copy; <span id="yr2">2026</span> Laras Gita Milenia<span class="aver"> &middot; v1.0.11 Beta</span></footer>
+<footer class="afoot">&copy; <span id="yr2">2026</span> Laras Gita Milenia<span class="aver"> &middot; v1.0.12 Beta</span></footer>
 </section>
 
 <section id="v_app" hidden>
@@ -1164,7 +1173,7 @@ body.dark .pf-pen:hover:not(:disabled){background:var(--lime,#eef53a);color:#1d1
 <div class="sdots" role="tablist" aria-label="Pilih widget"><button type="button" class="sdot on" data-i="0" role="tab" aria-selected="true">Cuaca</button><button type="button" class="sdot" data-i="1" role="tab" aria-selected="false">Kalkulator</button></div>
 </div>
 </section>
-<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span>v1.0.11 Beta</span></footer></div>
+<div class="navfoot"><footer class="wm"><span>&copy; <span id="yr">2026</span> Laras Gita Milenia</span><span>v1.0.12 Beta</span></footer></div>
 </main>
 </div></div>
 
@@ -3038,11 +3047,12 @@ function view(v){
   }else{apply()}
 }
 /* ---- Popup peringatan Beta + changelog (diperbarui tiap versi) ---- */
-const APP_VER='1.0.11-beta';
+const APP_VER='1.0.12-beta';
 const CHANGELOG=[
-  '[Perbaikan] Tampilan Profil dirombak: foto profil di tengah halaman, dengan ikon pensil kecil di pojok kanan foto untuk mengganti foto.',
-  '[Baru] Tombol Edit Profil berisi ganti nomor WhatsApp dan ganti password.',
-  '[Info] Fitur Profil butuh tambahan kode Apps Script (file profil_apps_script.gs) agar data tersimpan di Google Sheet.',
+  '[Perbaikan] Latar halaman login kini selalu memenuhi layar di PC, termasuk saat halaman login digulir.',
+  '[Perbaikan] Stack cuaca dan kalkulator bisa digeser berulang kali (berputar), dan latar halaman tidak lagi ikut bergeser.',
+  '[Perbaikan] Animasi geser stack disederhanakan: kartu hanya meluncur ke samping.',
+  '[Info] Menu Profil tersambung ke Apps Script lewat file Code.gs terbaru, supaya foto, nomor WhatsApp, dan password tersimpan di sheet Users.',
   '[Peringatan Beta] Hasil dan data yang ditampilkan masih bisa mengandung kekeliruan; harap cek kembali angkanya.'
 ];
 function betaOpen(){
@@ -3067,45 +3077,56 @@ $('beta_fb').onclick=()=>{
 (function(){
   const stack=$('wstack');if(!stack)return;
   const cards=[$('wxcard'),$('calc')],dots=[...stack.querySelectorAll('.sdot')];
-  let cur=0,busy=false;
+  let cur=0,busy=false;const N=cards.length;
   function paint(){
-    cards.forEach((c,i)=>{c.dataset.pos=i===cur?0:1;c.inert=i!==cur;c.setAttribute('aria-hidden',i!==cur?'true':'false')});
+    cards.forEach((c,i)=>{const pos=(i-cur+N)%N;c.dataset.pos=pos;c.inert=pos!==0;c.setAttribute('aria-hidden',pos!==0?'true':'false')});
     dots.forEach((d,i)=>{d.classList.toggle('on',i===cur);d.setAttribute('aria-selected',i===cur)});
   }
-  function flip(dir){
+  // dir -1 = geser ke kiri (kartu berikutnya), 1 = geser ke kanan (kartu sebelumnya); urutan berputar tanpa ujung
+  function slide(dir,to){
     if(busy)return;busy=true;
-    const top=cards[cur],nxt=cards[1-cur];
-    top.style.transition='transform .3s ease,opacity .3s ease';
-    top.style.transform='translateX('+(dir*115)+'%) rotate('+(dir*8)+'deg)';top.style.opacity='0';
-    setTimeout(()=>{
-      top.style.transition='none';top.style.transform='';top.style.opacity='';
-      cur=1-cur;paint();void top.offsetWidth;top.style.transition='';busy=false;
-    },300);
-  }
-  function go(i){if(i!==cur)flip(i>cur?-1:1)}
-  dots.forEach(d=>d.addEventListener('click',()=>go(+d.dataset.i)));
-  let sx=0,dx=0,drag=false;
-  stack.addEventListener('pointerdown',e=>{
     const top=cards[cur];
-    if(busy||!top.contains(e.target)||e.target.closest('button,select,input,a'))return;
-    drag=true;sx=e.clientX;dx=0;top.classList.add('drag');top.style.transition='none';
-    try{top.setPointerCapture(e.pointerId)}catch(_){}
+    top.style.transition='transform .22s ease';
+    top.style.transform='translateX('+(dir*105)+'%)';
+    setTimeout(()=>{
+      top.style.transition='none';top.style.transform='';
+      cur=to!==undefined?to:(cur-dir+N)%N;paint();
+      void top.offsetWidth;top.style.transition='';busy=false;
+    },230);
+  }
+  dots.forEach(d=>d.addEventListener('click',()=>{const i=+d.dataset.i;if(i!==cur)slide(i>cur?-1:1,i)}));
+  let sx=0,sy=0,dx=0,pid=null,armed=false,drag=false,swallow=false;
+  stack.addEventListener('pointerdown',e=>{
+    if(busy||(e.button&&e.button>0))return;
+    if(!cards[cur].contains(e.target)||e.target.closest('select,input,textarea,a'))return;
+    armed=true;drag=false;sx=e.clientX;sy=e.clientY;dx=0;pid=e.pointerId;
   });
   stack.addEventListener('pointermove',e=>{
-    if(!drag)return;const top=cards[cur];dx=e.clientX-sx;
-    top.style.transform='translateX('+dx+'px) rotate('+(dx/45)+'deg)';top.style.opacity=String(1-Math.min(Math.abs(dx)/420,.5));
+    if(!armed||e.pointerId!==pid)return;
+    const top=cards[cur],mx=e.clientX-sx,my=e.clientY-sy;
+    if(!drag){
+      // gerakan dominan vertikal dibiarkan untuk menggulir halaman; baru dianggap geser bila dominan horizontal
+      if(Math.abs(mx)<8||Math.abs(mx)<Math.abs(my)*1.2){if(Math.abs(my)>12)armed=false;return}
+      drag=true;top.classList.add('drag');top.style.transition='none';
+      try{top.setPointerCapture(pid)}catch(_){}
+    }
+    dx=mx;top.style.transform='translateX('+dx+'px)';
   });
   function end(){
-    if(!drag)return;drag=false;const top=cards[cur];top.classList.remove('drag');
-    if(Math.abs(dx)>70){top.style.transition='';flip(dx<0?-1:1)}
-    else{top.style.transition='';top.style.transform='';top.style.opacity=''}
+    if(!armed)return;armed=false;
+    if(!drag)return;
+    drag=false;const top=cards[cur];top.classList.remove('drag');
+    swallow=true;setTimeout(()=>{swallow=false},60); // jangan tekan tombol di bawah jari setelah menggeser
+    if(Math.abs(dx)>60)slide(dx<0?-1:1);
+    else{top.style.transition='transform .2s ease';top.style.transform='';setTimeout(()=>{top.style.transition=''},210)}
     dx=0;
   }
   stack.addEventListener('pointerup',end);stack.addEventListener('pointercancel',end);
+  stack.addEventListener('click',e=>{if(swallow){e.stopPropagation();e.preventDefault()}},true);
+  stack.addEventListener('touchmove',e=>{if(drag)e.preventDefault()},{passive:false});
   stack.addEventListener('keydown',e=>{
-    if(e.target.closest('select,input'))return;
-    if(e.key==='ArrowRight'&&cur===0&&!e.target.closest('#calc')){go(1)}
-    else if(e.key==='ArrowLeft'&&cur===1&&!e.target.closest('#calc')){go(0)}
+    if(e.target.closest('select,input,#calc'))return;
+    if(e.key==='ArrowRight')slide(-1);else if(e.key==='ArrowLeft')slide(1);
   });
   paint();
 
@@ -3373,7 +3394,7 @@ function pfFill(){
 }
 function pfErr(e){
   let t=(e&&e.message)||String(e);
-  if(/tidak dikenal|unknown|invalid action|aksi/i.test(t))t+=' (Server belum mendukung fitur Profil. Tambahkan kode dari file profil_apps_script.gs ke Apps Script.)';
+  if(/tidak dikenal|unknown|invalid action|aksi/i.test(t))t+=' (Server belum mendukung fitur Profil. Tempel Code.gs terbaru ke Apps Script, lalu deploy versi baru.)';
   return t;
 }
 async function pfLoad(show){
